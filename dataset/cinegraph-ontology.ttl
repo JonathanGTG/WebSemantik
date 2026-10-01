@@ -1,0 +1,58 @@
+@prefix film:  <http://example.org/ontology/> .
+@prefix schema: <https://schema.org/> .
+@prefix owl:   <http://www.w3.org/2002/07/owl#> .
+@prefix rdfs:  <http://www.w3.org/2000/01/rdf-schema#> .
+@prefix rdf:   <http://www.w3.org/1999/02/22-rdf-syntax-ns#> .
+@prefix xsd:   <http://www.w3.org/2001/XMLSchema#> .
+
+# ============================================================
+# CineGraph Ontology - v2, disinkronkan dengan FilmController.php
+# yang sudah ada di repo (bukan lagi placeholder cinegraph.example.org).
+#
+# Namespace resource dasar (dipakai script generator, BUKAN di file ini):
+#   film   : http://example.org/film/{tmdbId}
+#   person : http://example.org/person/{slug-nama}
+#   country: http://example.org/country/{slug-nama}
+#   genre  : http://example.org/genre/{slug-nama}
+# ============================================================
+
+<http://example.org/ontology/> a owl:Ontology ;
+    rdfs:label "CineGraph Film Ontology"@en ;
+    rdfs:comment "Ekstensi custom di atas reuse schema.org. Genre/Person/Country dimodelkan sebagai resource (bukan literal) supaya fitur 'Film Sejenis' bisa graph-traversal lewat resource yang sama."@id .
+
+# ---------- Class ----------
+
+film:Genre a owl:Class ;
+    rdfs:label "Genre"@en ;
+    rdfs:comment "Genre film sebagai entity terpisah. Dihubungkan ke schema:Movie lewat schema:genre (reuse schema.org, BUKAN properti custom)."@id .
+
+# ---------- Datatype Property (custom) ----------
+
+film:tmdbId a owl:DatatypeProperty ;
+    rdfs:label "TMDB ID"@en ;
+    rdfs:domain schema:Movie ;
+    rdfs:range xsd:integer ;
+    rdfs:comment "ID film di TMDB, dipakai untuk runtime API call (trailer, watch/providers, iTunes OST, reviews)."@id .
+
+film:wikidataId a owl:DatatypeProperty ;
+    rdfs:label "Wikidata ID"@en ;
+    rdfs:domain schema:Movie ;
+    rdfs:range xsd:string ;
+    rdfs:comment "QID Wikidata, jembatan mapping ke DBpedia lewat owl:sameAs."@id .
+
+film:boxOfficeUSD a owl:DatatypeProperty ;
+    rdfs:label "Box Office (USD)"@en ;
+    rdfs:domain schema:Movie ;
+    rdfs:range xsd:decimal ;
+    rdfs:comment "Sumber konversi IDR (FR-6). TIDAK ADA triple ini kalau data tidak tersedia - jangan diisi 0."@id .
+
+# ---------- Properti reuse schema.org yang dipakai FilmController.php ----------
+# schema:name             -> judul film (Literal) / nama person (Literal, di resource Person)
+# schema:datePublished    -> tanggal rilis (xsd:date)
+# schema:duration         -> durasi ISO 8601 (mis. "PT148M")
+# schema:image            -> URL poster (di Movie) ATAU foto profil (di Person, dari TMDB profile_path)
+# schema:genre            -> Movie -> Genre RESOURCE (Genre punya rdfs:label)
+# schema:director         -> Movie -> Person RESOURCE (Person punya schema:name, opsional schema:image)
+# schema:actor            -> Movie -> Person RESOURCE (bisa banyak)
+# schema:countryOfOrigin  -> Movie -> Country RESOURCE (Country punya schema:name)
+# owl:sameAs              -> URI resource DBpedia (federated query FR-2)
