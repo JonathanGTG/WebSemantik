@@ -36,8 +36,8 @@ return [
     ],
 
     'spotify' => [
-    'client_id'     => env('SPOTIFY_CLIENT_ID'),
-    'client_secret' => env('SPOTIFY_CLIENT_SECRET'),
+        'client_id' => env('SPOTIFY_CLIENT_ID'),
+        'client_secret' => env('SPOTIFY_CLIENT_SECRET'),
     ],
     'tmdb' => [
         'key' => env('TMDB_API_KEY_LARAVEL'),
@@ -48,6 +48,13 @@ return [
     'gemini' => [
         'key' => env('GEMINI_API_KEY'),
         'model' => env('GEMINI_MODEL', 'gemini-3.5-flash'),
+    ],
+    'fuseki' => [
+        'endpoint' => env('FUSEKI_ENDPOINT', 'http://localhost:3030/film/sparql'),
+        'base_uri' => env('FUSEKI_MOVIE_BASE_URI', 'http://pilem.org/cinegraph/resource/movie/'),
+        'person_base_uri' => env('FUSEKI_PERSON_BASE_URI', 'http://pilem.org/cinegraph/resource/person/'),
+        'genre_base_uri' => env('FUSEKI_GENRE_BASE_URI', 'http://pilem.org/cinegraph/resource/genre/'),
+        'country_base_uri' => env('FUSEKI_COUNTRY_BASE_URI', 'http://pilem.org/cinegraph/resource/country/'),
     ],
 
 ];

@@ -360,14 +360,14 @@
 
     <div class="row g-4">
         <div class="col-lg-8">
-            <div class="card-pilem p-3 d-flex flex-column" style="height: 420px;">
+            <div class="card-pilem p-3 d-flex flex-column" style="height: 460px;">
                 <div id="pilmy-messages" class="flex-grow-1 overflow-auto mb-3 d-flex flex-column gap-2">
                     <div class="chat-bubble-bot align-self-start">
-                        Halo! Tanya apa saja soal film Disney/Marvel/Pixar di sini, atau soal film lain secara umum. 🎬
+                        Halo! Saya tahu 150 film Disney, Marvel &amp; Pixar di dataset CineGraph. Tanya apa saja &mdash; rekomendasi, sutradara, atau info film lainnya! 🎬
                     </div>
                 </div>
                 <form id="pilmy-form" class="d-flex gap-2">
-                    <input type="text" id="pilmy-input" class="form-control search-input" placeholder="Tanya Pilmy..." autocomplete="off" maxlength="1000">
+                    <input type="text" id="pilmy-input" class="form-control search-input" placeholder="Contoh: Rekomendasikan film Pixar yang bagus..." autocomplete="off" maxlength="1000">
                     <button type="submit" class="btn btn-sun px-4">Send</button>
                 </form>
                 <small id="pilmy-status" class="text-white-50 mt-1"></small>
@@ -377,14 +377,14 @@
             <div class="card-pilem p-3">
                 <div class="fw-bold small mb-2 text-uppercase text-sand">Quick Prompts</div>
                 @foreach ([
-                    'Rekomendasikan film animasi Pixar dengan soundtrack emosional',
-                    'Urutan nonton film Marvel yang benar apa?',
-                    'Siapa sutradara Ratatouille?',
-                    'Film Disney apa yang paling banyak menang Oscar?',
+                    'Rekomendasikan film Pixar yang paling emosional',
+                    'Urutan nonton film Marvel Cinematic Universe yang benar?',
+                    'Film Disney animasi klasik apa yang bagus untuk ditonton?',
+                    'Rekomendasikan film superhero untuk anak-anak',
                 ] as $prompt)
                     <button type="button" class="quick-prompt pilmy-quick-prompt">{{ $prompt }}</button>
                 @endforeach
-                <small class="text-white-50 d-block mt-2">Jawaban dari Google Gemini, general knowledge -- bukan cuma dari dataset CineGraph.</small>
+                <small class="text-white-50 d-block mt-2">Jawaban dari Google Gemini dengan referensi dataset CineGraph. Klik poster film untuk melihat detail lengkap!</small>
             </div>
         </div>
     </div>
@@ -452,6 +452,7 @@
     const form = document.getElementById('pilmy-form');
     const input = document.getElementById('pilmy-input');
     const status = document.getElementById('pilmy-status');
+    const filmDetailBase = '{{ url("/film") }}';
 
     if (!form) return; // mode search, pilmy tidak tampil
 
@@ -460,6 +461,57 @@
         bubble.className = (role === 'user' ? 'chat-bubble-user align-self-end' : 'chat-bubble-bot align-self-start');
         bubble.textContent = text;
         messages.appendChild(bubble);
+        messages.scrollTop = messages.scrollHeight;
+    }
+
+    function appendFilmCards(films) {
+        if (!films || films.length === 0) return;
+
+        const wrapper = document.createElement('div');
+        wrapper.className = 'align-self-start w-100';
+
+        const label = document.createElement('div');
+        label.style.cssText = 'font-size:.7rem; color:rgba(255,255,255,.5); margin-bottom:6px;';
+        label.textContent = '🎬 Klik poster untuk lihat detail film:';
+        wrapper.appendChild(label);
+
+        const row = document.createElement('div');
+        row.style.cssText = 'display:flex; gap:10px; flex-wrap:nowrap; overflow-x:auto; padding-bottom:6px; scrollbar-width:thin;';
+
+        films.forEach(function (film) {
+            const link = document.createElement('a');
+            link.href = filmDetailBase + '/' + film.film_id;
+            link.title = film.title + (film.studio ? ' · ' + film.studio : '');
+            link.style.cssText = 'flex:0 0 90px; text-decoration:none; color:inherit; display:flex; flex-direction:column; align-items:center; gap:5px; transition:transform .15s;';
+            link.addEventListener('mouseenter', () => link.style.transform = 'scale(1.05)');
+            link.addEventListener('mouseleave', () => link.style.transform = '');
+
+            if (film.poster) {
+                const img = document.createElement('img');
+                img.src = film.poster;
+                img.alt = film.title;
+                img.loading = 'lazy';
+                img.style.cssText = 'width:90px; height:135px; object-fit:cover; border-radius:8px; border:2px solid rgba(255,255,255,0.15); transition:border-color .15s;';
+                img.addEventListener('mouseenter', () => img.style.borderColor = 'var(--sun)');
+                img.addEventListener('mouseleave', () => img.style.borderColor = 'rgba(255,255,255,0.15)');
+                link.appendChild(img);
+            } else {
+                const ph = document.createElement('div');
+                ph.style.cssText = 'width:90px; height:135px; border-radius:8px; background:rgba(255,255,255,0.08); display:flex; align-items:center; justify-content:center; font-size:2.2rem; border:2px solid rgba(255,255,255,0.1);';
+                ph.textContent = '🎬';
+                link.appendChild(ph);
+            }
+
+            const title = document.createElement('div');
+            title.style.cssText = 'font-size:.65rem; text-align:center; line-height:1.3; color:rgba(255,255,255,.85); max-width:90px; display:-webkit-box; -webkit-line-clamp:2; -webkit-box-orient:vertical; overflow:hidden;';
+            title.textContent = film.title;
+            link.appendChild(title);
+
+            row.appendChild(link);
+        });
+
+        wrapper.appendChild(row);
+        messages.appendChild(wrapper);
         messages.scrollTop = messages.scrollHeight;
     }
 
@@ -488,6 +540,7 @@
             }
 
             appendMessage('bot', data.reply);
+            appendFilmCards(data.filmSuggestions || []);
             status.textContent = data.messagesUsed + '/' + data.messagesLimit + ' pesan dipakai';
         } catch (err) {
             appendMessage('bot', 'Pilmy sedang tidak bisa dihubungi. Coba lagi.');

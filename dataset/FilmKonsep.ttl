@@ -1,0 +1,34 @@
+@prefix schema:  <https://schema.org/> .
+@prefix film:    <http://pilem.org/cinegraph/ontology#> .
+@prefix movie:   <http://pilem.org/cinegraph/resource/movie/> .
+@prefix person:  <http://pilem.org/cinegraph/resource/person/> .
+@prefix genre:   <http://pilem.org/cinegraph/resource/genre/> .
+@prefix country: <http://pilem.org/cinegraph/resource/country/> .
+@prefix rdfs:    <http://www.w3.org/2000/01/rdf-schema#> .
+@prefix xsd:     <http://www.w3.org/2001/XMLSchema#> .
+
+movie:tt0468569 a schema:Movie ;
+    schema:name "The Dark Knight" ;
+    schema:datePublished "2008-07-18"^^xsd:date ;
+    schema:duration "PT152M"^^xsd:duration ;
+    film:runtimeMinutes 152 ;
+    schema:genre genre:action, genre:crime, genre:drama ;
+    schema:director person:christopher-nolan ;
+    schema:actor person:christian-bale, person:heath-ledger ;
+    schema:countryOfOrigin country:united-states, country:united-kingdom ;
+    film:imdbRating 9.0 ;
+    film:rated "PG-13" ;
+    schema:description """Ketika Joker membuat kekacauan di Gotham, Batman harus menghadapi ujian terberatnya.""" ;
+    film:boxOfficeUSD 534987076 ;
+    schema:award "Won 2 Oscars." .
+
+genre:action a film:Genre ; rdfs:label "Action" .
+genre:crime  a film:Genre ; rdfs:label "Crime" .
+genre:drama  a film:Genre ; rdfs:label "Drama" .
+
+person:christopher-nolan a schema:Person ; schema:name "Christopher Nolan" .
+person:christian-bale    a schema:Person ; schema:name "Christian Bale" .
+person:heath-ledger      a schema:Person ; schema:name "Heath Ledger" .
+
+country:united-states  a schema:Country ; schema:name "United States" .
+country:united-kingdom a schema:Country ; schema:name "United Kingdom" .

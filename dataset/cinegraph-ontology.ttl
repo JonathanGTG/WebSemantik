@@ -1,58 +1,97 @@
-@prefix film:  <http://example.org/ontology/> .
-@prefix schema: <https://schema.org/> .
-@prefix owl:   <http://www.w3.org/2002/07/owl#> .
-@prefix rdfs:  <http://www.w3.org/2000/01/rdf-schema#> .
-@prefix rdf:   <http://www.w3.org/1999/02/22-rdf-syntax-ns#> .
-@prefix xsd:   <http://www.w3.org/2001/XMLSchema#> .
+@prefix film:    <http://pilem.org/cinegraph/ontology#> .
+@prefix schema:  <https://schema.org/> .
+@prefix movie:   <http://pilem.org/cinegraph/resource/movie/> .
+@prefix person:  <http://pilem.org/cinegraph/resource/person/> .
+@prefix genre:   <http://pilem.org/cinegraph/resource/genre/> .
+@prefix country: <http://pilem.org/cinegraph/resource/country/> .
+@prefix owl:     <http://www.w3.org/2002/07/owl#> .
+@prefix rdfs:    <http://www.w3.org/2000/01/rdf-schema#> .
+@prefix rdf:     <http://www.w3.org/1999/02/22-rdf-syntax-ns#> .
+@prefix xsd:     <http://www.w3.org/2001/XMLSchema#> .
 
 # ============================================================
-# CineGraph Ontology - v2, disinkronkan dengan FilmController.php
-# yang sudah ada di repo (bukan lagi placeholder cinegraph.example.org).
+# CineGraph Ontology
+# Namespace diselaraskan dengan format film.ttl dan
+# fetch_tmdb_to_rdf_cinegraph.py.
 #
-# Namespace resource dasar (dipakai script generator, BUKAN di file ini):
-#   film   : http://example.org/film/{tmdbId}
-#   person : http://example.org/person/{slug-nama}
-#   country: http://example.org/country/{slug-nama}
-#   genre  : http://example.org/genre/{slug-nama}
+# Pola URI resource:
+#   Film    : movie:{imdbId} atau movie:tmdb-{tmdbId} jika IMDb ID tidak ada
+#   Person  : person:{slug-nama}
+#   Genre   : genre:{slug-genre}
+#   Country : country:{slug-negara}
+#
+# Metadata inti memakai schema.org. Properti khusus CineGraph
+# digunakan untuk identifier dan metadata tambahan dari TMDB.
 # ============================================================
 
-<http://example.org/ontology/> a owl:Ontology ;
+<http://pilem.org/cinegraph/ontology#> a owl:Ontology ;
     rdfs:label "CineGraph Film Ontology"@en ;
-    rdfs:comment "Ekstensi custom di atas reuse schema.org. Genre/Person/Country dimodelkan sebagai resource (bukan literal) supaya fitur 'Film Sejenis' bisa graph-traversal lewat resource yang sama."@id .
+    rdfs:comment "Ontology CineGraph untuk mendeskripsikan film menggunakan schema.org dan properti tambahan untuk metadata dari TMDB."@en ;
+    owl:versionInfo "3.0" .
 
 # ---------- Class ----------
 
 film:Genre a owl:Class ;
     rdfs:label "Genre"@en ;
-    rdfs:comment "Genre film sebagai entity terpisah. Dihubungkan ke schema:Movie lewat schema:genre (reuse schema.org, BUKAN properti custom)."@id .
+    rdfs:comment "Genre film sebagai resource tersendiri. Film dihubungkan ke genre melalui schema:genre."@en .
 
-# ---------- Datatype Property (custom) ----------
+# ---------- Custom datatype properties ----------
 
 film:tmdbId a owl:DatatypeProperty ;
     rdfs:label "TMDB ID"@en ;
+    rdfs:comment "Identifier film pada The Movie Database (TMDB)."@en ;
     rdfs:domain schema:Movie ;
-    rdfs:range xsd:integer ;
-    rdfs:comment "ID film di TMDB, dipakai untuk runtime API call (trailer, watch/providers, iTunes OST, reviews)."@id .
+    rdfs:range xsd:integer .
+
+film:imdbId a owl:DatatypeProperty ;
+    rdfs:label "IMDb ID"@en ;
+    rdfs:comment "Identifier film pada IMDb, misalnya tt0468569; juga dapat digunakan sebagai bagian identifier resource film."@en ;
+    rdfs:domain schema:Movie ;
+    rdfs:range xsd:string .
 
 film:wikidataId a owl:DatatypeProperty ;
     rdfs:label "Wikidata ID"@en ;
+    rdfs:comment "Wikidata QID yang digunakan sebagai jembatan untuk mencari resource yang bersesuaian di DBpedia."@en ;
     rdfs:domain schema:Movie ;
-    rdfs:range xsd:string ;
-    rdfs:comment "QID Wikidata, jembatan mapping ke DBpedia lewat owl:sameAs."@id .
+    rdfs:range xsd:string .
 
 film:boxOfficeUSD a owl:DatatypeProperty ;
     rdfs:label "Box Office (USD)"@en ;
+    rdfs:comment "Pendapatan box office dalam dolar Amerika Serikat. Triple tidak dibuat jika data pendapatan tidak tersedia."@en ;
     rdfs:domain schema:Movie ;
-    rdfs:range xsd:decimal ;
-    rdfs:comment "Sumber konversi IDR (FR-6). TIDAK ADA triple ini kalau data tidak tersedia - jangan diisi 0."@id .
+    rdfs:range xsd:integer .
 
-# ---------- Properti reuse schema.org yang dipakai FilmController.php ----------
-# schema:name             -> judul film (Literal) / nama person (Literal, di resource Person)
-# schema:datePublished    -> tanggal rilis (xsd:date)
-# schema:duration         -> durasi ISO 8601 (mis. "PT148M")
-# schema:image            -> URL poster (di Movie) ATAU foto profil (di Person, dari TMDB profile_path)
-# schema:genre            -> Movie -> Genre RESOURCE (Genre punya rdfs:label)
-# schema:director         -> Movie -> Person RESOURCE (Person punya schema:name, opsional schema:image)
-# schema:actor            -> Movie -> Person RESOURCE (bisa banyak)
-# schema:countryOfOrigin  -> Movie -> Country RESOURCE (Country punya schema:name)
-# owl:sameAs              -> URI resource DBpedia (federated query FR-2)
+film:runtimeMinutes a owl:DatatypeProperty ;
+    rdfs:label "Runtime (minutes)"@en ;
+    rdfs:comment "Durasi film dalam satuan menit; melengkapi schema:duration yang menggunakan format durasi ISO 8601."@en ;
+    rdfs:domain schema:Movie ;
+    rdfs:range xsd:integer .
+
+film:tmdbRating a owl:DatatypeProperty ;
+    rdfs:label "TMDB Rating"@en ;
+    rdfs:comment "Nilai rating film dari TMDB. Properti ini dibedakan dari rating IMDb agar sumber rating tidak tertukar."@en ;
+    rdfs:domain schema:Movie ;
+    rdfs:range xsd:decimal .
+
+film:rated a owl:DatatypeProperty ;
+    rdfs:label "Content Rating"@en ;
+    rdfs:comment "Sertifikasi atau klasifikasi usia film jika tersedia, misalnya PG-13."@en ;
+    rdfs:domain schema:Movie ;
+    rdfs:range xsd:string .
+
+# ---------- Schema.org properties reused by CineGraph ----------
+# schema:name             -> judul film atau nama orang/negara
+# schema:description      -> sinopsis film
+# schema:datePublished    -> tanggal rilis, xsd:date
+# schema:duration         -> durasi ISO 8601, xsd:duration
+# schema:image            -> URL poster film atau foto profil orang
+# schema:genre            -> film ke resource genre:Genre
+# schema:director         -> film ke resource schema:Person
+# schema:actor            -> film ke satu atau lebih resource schema:Person
+# schema:countryOfOrigin  -> film ke resource schema:Country
+# rdfs:label              -> label resource genre
+# owl:sameAs              -> tautan ke resource DBpedia jika pemetaan tersedia
+
+# Resource namespace di atas dicantumkan agar pola URI dataset terlihat jelas.
+# Individu film, orang, genre, dan negara dihasilkan secara dinamis oleh generator
+# dataset sehingga tidak dideklarasikan satu per satu di file ontology ini.

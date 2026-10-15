@@ -4,15 +4,15 @@ fetch_tmdb_to_rdf.py
 Generate dataset RDF (film.ttl) untuk CineGraph dari TMDB API, dengan
 mapping ke DBpedia via Wikidata QID sebagai jembatan.
 
-v2 - disinkronkan dengan FilmController.php yang sudah ada di repo:
-  - namespace film: = http://example.org/ontology/ (bukan cinegraph.example.org)
-  - schema: = https://schema.org/ (https, bukan http)
-  - base URI film = http://example.org/film/{tmdbId} (bukan .../resource/movie/)
-  - genre/director/actor/country DIBUAT SEBAGAI RESOURCE (bukan literal),
-    dihubungkan lewat properti schema.org biasa (schema:genre, schema:director,
-    schema:actor, schema:countryOfOrigin) - supaya fitur "Film Sejenis" di
-    controller bisa graph-traversal lewat resource yang sama persis.
-  - tambah schema:image (poster URL, dipakai controller & fitur Film Sejenis)
+Versi CineGraph mengikuti pola Turtle yang ditentukan:
+  - namespace dan URI resource memakai http://pilem.org/cinegraph/...
+  - film diidentifikasi memakai IMDb ID (mis. movie:tt0468569) jika tersedia;
+    jika tidak, memakai ID fallback movie:tmdb-{id}.
+  - genre, sutradara, aktor, dan negara merupakan resource tersendiri, bukan literal.
+  - metadata film dikelompokkan memakai schema.org dan properti tambahan film:.
+  - rating dari TMDB disimpan sebagai film:tmdbRating, bukan film:imdbRating,
+    karena nilai dari endpoint TMDB bukan rating IMDb.
+  - sertifikasi rating usia AS (film:rated) diisi hanya jika data tersedia dari TMDB.
 
 Proses ini OFFLINE/BATCH, bukan runtime. Jalankan ulang tiap refresh dataset,
 lalu load ulang film.ttl ke Fuseki.
@@ -34,6 +34,7 @@ import re
 import time
 import logging
 import argparse
+from pathlib import Path
 from urllib.parse import quote
 
 import requests
@@ -48,12 +49,12 @@ TMDB_IMAGE_BASE = "https://image.tmdb.org/t/p/w500"
 TMDB_PROFILE_IMAGE_BASE = "https://image.tmdb.org/t/p/w185"  # foto orang, ukuran lebih kecil dari poster
 WIKIDATA_API_BASE = "https://www.wikidata.org/w/api.php"
 
-FILM_NS = Namespace("http://example.org/ontology/")     # film:tmdbId, film:boxOfficeUSD, dst
-SCHEMA = Namespace("https://schema.org/")                # https, sesuai controller
-MOVIE_NS = Namespace("http://example.org/film/")         # base URI film -> cocok dgn buildFilmUri()
-PERSON_NS = Namespace("http://example.org/person/")      # resource sutradara & aktor
-COUNTRY_NS = Namespace("http://example.org/country/")    # resource negara
-GENRE_NS = Namespace("http://example.org/genre/")        # resource genre
+FILM_NS = Namespace("http://pilem.org/cinegraph/ontology#")
+SCHEMA = Namespace("https://schema.org/")
+MOVIE_NS = Namespace("http://pilem.org/cinegraph/resource/movie/")
+PERSON_NS = Namespace("http://pilem.org/cinegraph/resource/person/")
+GENRE_NS = Namespace("http://pilem.org/cinegraph/resource/genre/")
+COUNTRY_NS = Namespace("http://pilem.org/cinegraph/resource/country/")
 
 REQUEST_TIMEOUT = 10
 RATE_LIMIT_DELAY = 0.3
@@ -153,7 +154,7 @@ class TMDBClient:
     def get_movie_full(self, movie_id):
         return self.get(f"/movie/{movie_id}", {
             "language": "en-US",
-            "append_to_response": "credits,external_ids",
+            "append_to_response": "credits,external_ids,release_dates",
         })
 
 
@@ -191,20 +192,27 @@ def get_dbpedia_uri_from_wikidata(wikidata_id):
 # ---------------------------------------------------------------------------
 
 def build_graph(movies):
+    """Bangun graph RDF dengan struktur konsisten seperti contoh Turtle CineGraph."""
     g = Graph()
-    g.bind("film", FILM_NS)
-    g.bind("schema", SCHEMA)
-    g.bind("owl", OWL)
+    g.bind("schema", SCHEMA, replace=True)
+    g.bind("film", FILM_NS, replace=True)
+    g.bind("movie", MOVIE_NS, replace=True)
+    g.bind("person", PERSON_NS, replace=True)
+    g.bind("genre", GENRE_NS, replace=True)
+    g.bind("country", COUNTRY_NS, replace=True)
+    g.bind("rdfs", RDFS, replace=True)
+    g.bind("xsd", XSD, replace=True)
+    g.bind("owl", OWL, replace=True)
 
     genre_seen, person_seen, country_seen = {}, {}, {}
-    skipped_no_wikidata, skipped_no_dbpedia = [], []
+    skipped_no_imdb, skipped_no_wikidata, skipped_no_dbpedia = [], [], []
 
     def get_genre_uri(name):
         slug = slugify(name)
         if slug not in genre_seen:
             uri = GENRE_NS[slug]
             g.add((uri, RDF.type, FILM_NS.Genre))
-            g.add((uri, RDFS.label, Literal(name, lang="en")))
+            g.add((uri, RDFS.label, Literal(name)))
             genre_seen[slug] = uri
         return genre_seen[slug]
 
@@ -213,10 +221,15 @@ def build_graph(movies):
         if slug not in person_seen:
             uri = PERSON_NS[slug]
             g.add((uri, RDF.type, SCHEMA.Person))
-            g.add((uri, SCHEMA.name, Literal(name, lang="en")))
+            g.add((uri, SCHEMA.name, Literal(name)))
             if profile_path:
                 g.add((uri, SCHEMA.image, Literal(f"{TMDB_PROFILE_IMAGE_BASE}{profile_path}")))
             person_seen[slug] = uri
+        elif profile_path:
+            # Jika orang yang sama muncul lagi dan gambar belum tersedia, lengkapi resource.
+            uri = person_seen[slug]
+            if (uri, SCHEMA.image, None) not in g:
+                g.add((uri, SCHEMA.image, Literal(f"{TMDB_PROFILE_IMAGE_BASE}{profile_path}")))
         return person_seen[slug]
 
     def get_country_uri(name):
@@ -224,48 +237,114 @@ def build_graph(movies):
         if slug not in country_seen:
             uri = COUNTRY_NS[slug]
             g.add((uri, RDF.type, SCHEMA.Country))
-            g.add((uri, SCHEMA.name, Literal(name, lang="en")))
+            g.add((uri, SCHEMA.name, Literal(name)))
             country_seen[slug] = uri
         return country_seen[slug]
 
+    def get_us_certification(movie):
+        """Ambil sertifikasi usia AS dari data release_dates TMDB, bila tersedia."""
+        release_data = movie.get("release_dates", {})
+        for region in release_data.get("results", []):
+            if region.get("iso_3166_1") != "US":
+                continue
+            for release in region.get("release_dates", []):
+                certification = (release.get("certification") or "").strip()
+                if certification:
+                    return certification
+        return None
+
     for movie in movies:
         tmdb_id = movie["id"]
-        movie_uri = MOVIE_NS[str(tmdb_id)]
+        external_ids = movie.get("external_ids", {}) or {}
+        imdb_id = (external_ids.get("imdb_id") or "").strip()
+
+        # Mengutamakan pola URI pada contoh: movie:tt0468569.
+        # Fallback tetap stabil untuk judul yang tidak memiliki IMDb ID.
+        if imdb_id:
+            movie_uri = MOVIE_NS[imdb_id]
+        else:
+            movie_uri = MOVIE_NS[f"tmdb-{tmdb_id}"]
+            skipped_no_imdb.append(tmdb_id)
 
         g.add((movie_uri, RDF.type, SCHEMA.Movie))
-        g.add((movie_uri, SCHEMA.name, Literal(movie.get("title", ""), lang="en")))
+
+        title = (movie.get("title") or movie.get("original_title") or "").strip()
+        if title:
+            g.add((movie_uri, SCHEMA.name, Literal(title)))
+
+        description = (movie.get("overview") or "").strip()
+        if description:
+            g.add((movie_uri, SCHEMA.description, Literal(description, lang="en")))
+
+        # ID TMDB dipertahankan sebagai metadata tambahan untuk pelacakan sumber data.
         g.add((movie_uri, FILM_NS.tmdbId, Literal(tmdb_id, datatype=XSD.integer)))
+        if imdb_id:
+            g.add((movie_uri, FILM_NS.imdbId, Literal(imdb_id)))
 
-        if movie.get("release_date"):
-            g.add((movie_uri, SCHEMA.datePublished, Literal(movie["release_date"], datatype=XSD.date)))
+        release_date = (movie.get("release_date") or "").strip()
+        if release_date:
+            try:
+                # Hindari literal bertipe xsd:date jika sumber mengirim tanggal tidak lengkap.
+                from datetime import date
+                date.fromisoformat(release_date)
+                g.add((movie_uri, SCHEMA.datePublished, Literal(release_date, datatype=XSD.date)))
+            except ValueError:
+                logger.warning("Tanggal rilis tidak valid untuk TMDB ID %s: %r", tmdb_id, release_date)
 
-        if movie.get("runtime"):
-            g.add((movie_uri, SCHEMA.duration, Literal(f"PT{movie['runtime']}M", datatype=XSD.duration)))
+        runtime = movie.get("runtime")
+        if runtime is not None:
+            try:
+                runtime_minutes = int(runtime)
+                if runtime_minutes > 0:
+                    g.add((movie_uri, SCHEMA.duration, Literal(f"PT{runtime_minutes}M", datatype=XSD.duration, normalize=False)))
+                    g.add((movie_uri, FILM_NS.runtimeMinutes, Literal(runtime_minutes, datatype=XSD.integer)))
+            except (TypeError, ValueError):
+                logger.warning("Runtime tidak valid untuk TMDB ID %s: %r", tmdb_id, runtime)
 
-        if movie.get("poster_path"):
-            g.add((movie_uri, SCHEMA.image, Literal(f"{TMDB_IMAGE_BASE}{movie['poster_path']}")))
+        poster_path = movie.get("poster_path")
+        if poster_path:
+            g.add((movie_uri, SCHEMA.image, Literal(f"{TMDB_IMAGE_BASE}{poster_path}")))
 
-        # revenue == 0 di TMDB biasanya berarti data TIDAK DIKETAHUI, bukan Rp0.
-        if movie.get("revenue"):
-            g.add((movie_uri, FILM_NS.boxOfficeUSD, Literal(movie["revenue"], datatype=XSD.decimal)))
+        # Revenue TMDB diperlakukan sebagai box office USD; data 0 tidak dianggap diketahui.
+        revenue = movie.get("revenue")
+        if revenue:
+            g.add((movie_uri, FILM_NS.boxOfficeUSD, Literal(int(revenue), datatype=XSD.integer)))
 
-        for genre in movie.get("genres", []):
-            g.add((movie_uri, SCHEMA.genre, get_genre_uri(genre["name"])))
+        # vote_average adalah nilai TMDB, jadi tidak dilabeli sebagai IMDb rating.
+        tmdb_rating = movie.get("vote_average")
+        if tmdb_rating is not None:
+            try:
+                g.add((movie_uri, FILM_NS.tmdbRating, Literal(float(tmdb_rating), datatype=XSD.decimal)))
+            except (TypeError, ValueError):
+                logger.warning("Rating TMDB tidak valid untuk TMDB ID %s: %r", tmdb_id, tmdb_rating)
 
-        for country in movie.get("production_countries", []):
-            if country.get("name"):
-                g.add((movie_uri, SCHEMA.countryOfOrigin, get_country_uri(country["name"])))
+        certification = get_us_certification(movie)
+        if certification:
+            g.add((movie_uri, FILM_NS.rated, Literal(certification)))
 
-        credits = movie.get("credits", {})
+        for genre_data in movie.get("genres", []):
+            genre_name = (genre_data.get("name") or "").strip()
+            if genre_name:
+                g.add((movie_uri, SCHEMA.genre, get_genre_uri(genre_name)))
+
+        for country_data in movie.get("production_countries", []):
+            country_name = (country_data.get("name") or "").strip()
+            if country_name:
+                g.add((movie_uri, SCHEMA.countryOfOrigin, get_country_uri(country_name)))
+
+        credits = movie.get("credits", {}) or {}
         for crew in credits.get("crew", []):
             if crew.get("job") == "Director" and crew.get("name"):
-                g.add((movie_uri, SCHEMA.director, get_person_uri(crew["name"], crew.get("profile_path"))))
-        for cast in credits.get("cast", [])[:MAX_CAST]:
-            if cast.get("name"):
-                g.add((movie_uri, SCHEMA.actor, get_person_uri(cast["name"], cast.get("profile_path"))))
+                g.add((movie_uri, SCHEMA.director,
+                       get_person_uri(crew["name"], crew.get("profile_path"))))
 
-        # --- mapping ke DBpedia via Wikidata QID ---
-        wikidata_id = movie.get("external_ids", {}).get("wikidata_id")
+        for cast in (credits.get("cast", []) or [])[:MAX_CAST]:
+            if cast.get("name"):
+                g.add((movie_uri, SCHEMA.actor,
+                       get_person_uri(cast["name"], cast.get("profile_path"))))
+
+        # Hubungkan resource film dengan DBpedia jika TMDB menyediakan Wikidata QID.
+        wikidata_id = external_ids.get("wikidata_id")
         if not wikidata_id:
             skipped_no_wikidata.append(tmdb_id)
         else:
@@ -276,12 +355,127 @@ def build_graph(movies):
             else:
                 skipped_no_dbpedia.append(tmdb_id)
 
+    if skipped_no_imdb:
+        logger.warning(
+            "%s film tidak memiliki IMDb ID; URI fallback movie:tmdb-{id} digunakan: %s",
+            len(skipped_no_imdb), skipped_no_imdb,
+        )
     if skipped_no_wikidata:
-        logger.warning(f"{len(skipped_no_wikidata)} film tanpa wikidata_id: {skipped_no_wikidata}")
+        logger.warning("%s film tanpa wikidata_id: %s", len(skipped_no_wikidata), skipped_no_wikidata)
     if skipped_no_dbpedia:
-        logger.warning(f"{len(skipped_no_dbpedia)} film tanpa sitelink enwiki (gagal mapping DBpedia): {skipped_no_dbpedia}")
+        logger.warning(
+            "%s film tanpa sitelink enwiki (gagal mapping DBpedia): %s",
+            len(skipped_no_dbpedia), skipped_no_dbpedia,
+        )
 
     return g
+
+
+def serialize_turtle_ordered(graph: Graph, output_path: str) -> None:
+    """Serialize Turtle in a readable, deterministic order.
+
+    For each movie, rdf:type is written first and schema:name immediately after
+    it, so the movie title appears near the top of every movie block. RDF itself
+    is unordered; this only controls the human-readable Turtle presentation.
+    """
+    prefixes = [
+        ("schema", SCHEMA),
+        ("film", FILM_NS),
+        ("movie", MOVIE_NS),
+        ("person", PERSON_NS),
+        ("genre", GENRE_NS),
+        ("country", COUNTRY_NS),
+        ("rdfs", RDFS),
+        ("xsd", XSD),
+        ("owl", OWL),
+    ]
+
+    # Bind these prefixes explicitly so term.n3() emits the expected CURIEs.
+    for prefix, namespace in prefixes:
+        graph.bind(prefix, namespace, replace=True)
+    ns_manager = graph.namespace_manager
+
+    property_order = {
+        RDF.type: 0,
+        SCHEMA.name: 1,
+        RDFS.label: 2,
+        SCHEMA.description: 3,
+        SCHEMA.datePublished: 4,
+        SCHEMA.duration: 5,
+        FILM_NS.runtimeMinutes: 6,
+        SCHEMA.genre: 7,
+        SCHEMA.director: 8,
+        SCHEMA.actor: 9,
+        SCHEMA.countryOfOrigin: 10,
+        FILM_NS.tmdbRating: 11,
+        FILM_NS.rated: 12,
+        FILM_NS.boxOfficeUSD: 13,
+        FILM_NS.tmdbId: 14,
+        FILM_NS.imdbId: 15,
+        FILM_NS.wikidataId: 16,
+        SCHEMA.image: 17,
+        OWL.sameAs: 18,
+    }
+
+    def object_sort_key(term):
+        return (str(term), term.n3(namespace_manager=ns_manager))
+
+    def subject_title(subject):
+        values = list(graph.objects(subject, SCHEMA.name))
+        if values:
+            return str(values[0]).casefold()
+        labels = list(graph.objects(subject, RDFS.label))
+        return str(labels[0]).casefold() if labels else str(subject).casefold()
+
+    def subject_sort_key(subject):
+        uri = str(subject)
+        if uri.startswith(str(MOVIE_NS)):
+            group = 0  # All movie blocks first, sorted by title.
+        elif uri.startswith(str(GENRE_NS)):
+            group = 1
+        elif uri.startswith(str(PERSON_NS)):
+            group = 2
+        elif uri.startswith(str(COUNTRY_NS)):
+            group = 3
+        else:
+            group = 4
+        return (group, subject_title(subject), uri)
+
+    lines = [f"@prefix {prefix}: <{namespace}> ." for prefix, namespace in prefixes]
+    lines.append("")
+
+    for subject in sorted(set(graph.subjects()), key=subject_sort_key):
+        predicate_objects = {}
+        for predicate, obj in graph.predicate_objects(subject):
+            predicate_objects.setdefault(predicate, []).append(obj)
+
+        predicates = sorted(
+            predicate_objects,
+            key=lambda pred: (property_order.get(pred, 100), str(pred)),
+        )
+        if not predicates:
+            continue
+
+        subject_text = subject.n3(namespace_manager=ns_manager)
+        for index, predicate in enumerate(predicates):
+            if predicate == RDF.type and len(predicate_objects[predicate]) == 1:
+                predicate_text = "a"
+            else:
+                predicate_text = predicate.n3(namespace_manager=ns_manager)
+
+            objects = sorted(predicate_objects[predicate], key=object_sort_key)
+            object_text = ",\n        ".join(
+                item.n3(namespace_manager=ns_manager) for item in objects
+            )
+            if index == 0:
+                line = f"{subject_text} {predicate_text} {object_text}"
+            else:
+                line = f"    {predicate_text} {object_text}"
+            line += " ;" if index < len(predicates) - 1 else " ."
+            lines.append(line)
+        lines.append("")
+
+    Path(output_path).write_text("\n".join(lines).rstrip() + "\n", encoding="utf-8")
 
 
 def main():
@@ -349,7 +543,7 @@ def main():
     logger.info("Bangun RDF graph...")
     graph = build_graph(movies)
 
-    graph.serialize(destination=args.output, format="turtle")
+    serialize_turtle_ordered(graph, args.output)
     logger.info(f"Selesai. {len(graph)} triples ditulis ke {args.output}")
 
 

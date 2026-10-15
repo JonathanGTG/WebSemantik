@@ -96,6 +96,11 @@
                         </span>
                     @endif
                 </div>
+            @else
+                <div class="position-relative d-flex align-items-center justify-content-center rounded-3 shadow w-100 bg-dark text-white-50"
+                     style="aspect-ratio:2/3; font-size:3rem; border:1px solid rgba(255,255,255,0.1);">
+                    🎬
+                </div>
             @endif
         </div>
 
@@ -119,8 +124,15 @@
                     <span><strong property="datePublished">{{ substr($film['tahun'], 0, 4) }}</strong></span>
                     <span class="sep">·</span>
                 @endif
+                @if (!empty($film['rated']))
+                    <span class="badge border border-secondary text-light px-2 py-1" style="font-size:.72rem;">{{ $film['rated'] }}</span>
+                    <span class="sep">·</span>
+                @endif
                 @if ($film['durasi'])
                     <span property="duration">{{ pilemFormatDurasi($film['durasi']) }}</span>
+                    <span class="sep">·</span>
+                @elseif (!empty($film['runtimeMinutes']))
+                    <span>{{ $film['runtimeMinutes'] }} mnt</span>
                     <span class="sep">·</span>
                 @endif
                 @if ($film['negara'])
@@ -317,21 +329,16 @@
             @endif
         </div>
 
-        {{-- Review --}}
+        {{-- Rating --}}
         <div class="col-lg-4">
-            <div class="section-label">💬 Review Penonton (TMDB)</div>
-            @if (!empty($film['externalData']['reviews']))
-                <div class="d-flex flex-column gap-3">
-                    @foreach (array_slice($film['externalData']['reviews'], 0, 3) as $review)
-                        <div class="review-card">
-                            <div class="text-white-50 small mb-1">{{ Str::limit($review['content'], 180) }}</div>
-                            <div class="text-sand small fw-semibold">&mdash; {{ $review['author'] }}</div>
-                        </div>
-                    @endforeach
+            <div class="section-label">⭐ Rating Film (TMDB)</div>
+            @if (!empty($film['rating']))
+                <div class="card-flat p-4 text-center">
+                    <h2 class="text-sand mb-0 fw-bold">{{ number_format($film['rating'], 1) }} <span class="fs-6 text-white-50">/ 10</span></h2>
                 </div>
             @else
                 <div class="card-flat p-3 text-center">
-                    <div class="text-white-50 small">Belum ada review.</div>
+                    <div class="text-white-50 small">Belum ada rating.</div>
                 </div>
             @endif
         </div>
