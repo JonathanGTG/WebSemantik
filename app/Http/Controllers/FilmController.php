@@ -6,6 +6,7 @@ use App\Models\MoviePoster;
 use EasyRdf\Exception as EasyRdfException;
 use EasyRdf\Sparql\Client;
 use Illuminate\Http\Client\Pool;
+use Illuminate\Http\Client\Response;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Http;
 use Illuminate\Support\Facades\Log;
@@ -517,7 +518,7 @@ class FilmController extends Controller
 
         foreach ($sample as $f) {
             $resp = $responses[$f['id']] ?? null;
-            $data = ($resp && $resp->successful())
+            $data = ($resp instanceof Response && $resp->successful())
                 ? ($resp->json('results.ID') ?? $resp->json('results.US'))
                 : null;
 
@@ -826,21 +827,23 @@ class FilmController extends Controller
             $responses = [];
         }
 
-        $exchangeRate = (isset($responses['exchange']) && $responses['exchange']->successful())
+        $exchangeRate = (isset($responses['exchange']) && $responses['exchange'] instanceof Response && $responses['exchange']->successful())
             ? $responses['exchange']->json('rates.IDR')
             : null;
 
+        $isOk = static fn ($r): bool => $r instanceof Response && $r->successful();
+
         return [
-            'soundtrack' => (isset($responses['soundtrack']) && $responses['soundtrack']->successful())
+            'soundtrack' => $isOk($responses['soundtrack'] ?? null)
                 ? $responses['soundtrack']->json('results')
                 : null,
-            'trailerKey' => (isset($responses['trailer']) && $responses['trailer']->successful())
+            'trailerKey' => $isOk($responses['trailer'] ?? null)
                 ? $this->extractYoutubeTrailerKey($responses['trailer']->json('results') ?? [])
                 : null,
-            'streaming' => (isset($responses['streaming']) && $responses['streaming']->successful())
+            'streaming' => $isOk($responses['streaming'] ?? null)
                 ? ($responses['streaming']->json('results.ID') ?? $responses['streaming']->json('results.US'))
                 : null,
-            'reviews' => (isset($responses['reviews']) && $responses['reviews']->successful())
+            'reviews' => $isOk($responses['reviews'] ?? null)
                 ? $responses['reviews']->json('results')
                 : null,
             'boxOfficeIDR' => ($film['boxOfficeUSD'] && $exchangeRate)
@@ -850,7 +853,7 @@ class FilmController extends Controller
             // (BUKAN waktu request kita), supaya keterangan "per [timestamp]"
             // di FR-6 akurat -- bukan cuma tampilkan waktu server kita.
             'exchangeRate' => $exchangeRate,
-            'exchangeRateAt' => (isset($responses['exchange']) && $responses['exchange']->successful())
+            'exchangeRateAt' => $isOk($responses['exchange'] ?? null)
                 ? $responses['exchange']->json('time_last_update_utc')
                 : null,
         ];
