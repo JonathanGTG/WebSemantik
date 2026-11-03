@@ -33,6 +33,7 @@
     .cast-card {
         text-align: center; text-decoration: none; color: inherit;
         display: flex; flex-direction: column; align-items: center; gap: .4rem;
+        width: 100px;
     }
     .cast-card img, .cast-card .cast-placeholder {
         width: 72px; height: 72px; border-radius: 50%; object-fit: cover;
@@ -42,12 +43,18 @@
         background: rgba(255,255,255,0.08); display: flex; align-items: center; justify-content: center; font-size: 1.5rem;
     }
     .cast-card:hover img, .cast-card:hover .cast-placeholder { border-color: var(--sky); }
-    .cast-name { font-size: .7rem; line-height: 1.2; }
+    .cast-name { font-size: .75rem; line-height: 1.2; }
     .cast-role-badge {
-        font-size: .6rem; padding: .15rem .5rem; border-radius: 999px;
-        background: rgba(255,255,255,0.12); font-weight: 600;
+        font-size: .62rem; padding: .18rem .55rem; border-radius: 999px;
+        background: rgba(255,255,255,0.12); font-weight: 500;
+        max-width: 100%;
+        display: inline-block;
+        white-space: nowrap;
+        overflow: hidden;
+        text-overflow: ellipsis;
     }
-    .cast-role-badge.sutradara { background: var(--sky); }
+    .cast-role-badge.sutradara { background: var(--sky); font-weight: 600; }
+    .cast-role-badge.pemeran { background: rgba(255,226,100,0.15); color: var(--sand); border: 1px solid rgba(255,226,100,0.3); }
     .ost-track {
         background: rgba(255,255,255,0.05); border: 1px solid rgba(255,255,255,0.1);
         border-radius: 10px; padding: .75rem; transition: border-color .15s;
@@ -223,23 +230,59 @@
 
     {{-- ======================= CAST & CREW ======================= --}}
     @if (!empty($film['castCrew']))
+        @php
+            $sutradaraCrew = collect($film['castCrew'])->where('peran', 'Sutradara');
+            $aktorCrew     = collect($film['castCrew'])->where('peran', 'Aktor');
+        @endphp
         <hr class="pilem-hr my-4">
-        <div class="section-label">🎭 Pemeran &amp; Sutradara</div>
-        <div class="d-flex flex-wrap gap-3">
-            @foreach ($film['castCrew'] as $orang)
-                <a href="{{ route('person.detail', $orang['id']) }}"
-                   class="cast-card"
-                   property="{{ $orang['peran'] === 'Sutradara' ? 'director' : 'actor' }}">
-                    @if ($orang['foto'])
-                        <img src="{{ $orang['foto'] }}" alt="{{ $orang['nama'] }}">
-                    @else
-                        <div class="cast-placeholder">{{ $orang['peran'] === 'Sutradara' ? '🎬' : '🎭' }}</div>
-                    @endif
-                    <div class="cast-name">{{ Str::limit($orang['nama'], 16) }}</div>
-                    <span class="cast-role-badge {{ strtolower($orang['peran']) }}">{{ $orang['peran'] }}</span>
-                </a>
-            @endforeach
-        </div>
+
+        {{-- Sutradara --}}
+        @if ($sutradaraCrew->isNotEmpty())
+            <div class="section-label">🎬 Sutradara</div>
+            <div class="d-flex flex-wrap gap-3 mb-4">
+                @foreach ($sutradaraCrew as $orang)
+                    <a href="{{ route('person.detail', $orang['id']) }}"
+                       class="cast-card"
+                       property="director"
+                       title="{{ $orang['nama'] }} (Sutradara)">
+                        @if ($orang['foto'])
+                            <img src="{{ $orang['foto'] }}" alt="{{ $orang['nama'] }}">
+                        @else
+                            <div class="cast-placeholder">🎬</div>
+                        @endif
+                        <div class="cast-name fw-semibold">{{ Str::limit($orang['nama'], 16) }}</div>
+                        <span class="cast-role-badge sutradara">Sutradara</span>
+                    </a>
+                @endforeach
+            </div>
+        @endif
+
+        {{-- Aktor --}}
+        @if ($aktorCrew->isNotEmpty())
+            <div class="section-label">🎭 Pemeran</div>
+            <div class="d-flex flex-wrap gap-3">
+                @foreach ($aktorCrew as $orang)
+                    <a href="{{ route('person.detail', $orang['id']) }}"
+                       class="cast-card"
+                       property="actor"
+                       title="{{ $orang['nama'] }}{{ !empty($orang['karakter']) ? ' sebagai ' . $orang['karakter'] : '' }}">
+                        @if ($orang['foto'])
+                            <img src="{{ $orang['foto'] }}" alt="{{ $orang['nama'] }}">
+                        @else
+                            <div class="cast-placeholder">🎭</div>
+                        @endif
+                        <div class="cast-name fw-semibold">{{ Str::limit($orang['nama'], 16) }}</div>
+                        @if (!empty($orang['karakter']))
+                            <span class="cast-role-badge pemeran">
+                                sebagai {{ Str::limit($orang['karakter'], 15) }}
+                            </span>
+                        @else
+                            <span class="cast-role-badge">Aktor</span>
+                        @endif
+                    </a>
+                @endforeach
+            </div>
+        @endif
     @endif
 
     {{-- ======================= TRAILER ======================= --}}

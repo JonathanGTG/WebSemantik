@@ -275,7 +275,16 @@
                                 <span>{{ pilemFormatDurasi($f['durasi']) ?? '-' }}</span>
                             </div>
                             @if ($f['sutradara'])
-                                <div class="text-white-50 mt-1" style="font-size:.68rem;">🎬 {{ Str::limit($f['sutradara'], 20) }}</div>
+                                <div class="mt-1" style="font-size:.68rem;">
+                                    <span class="text-white-50" style="font-size:.6rem; text-transform:uppercase; letter-spacing:.04em;">Sutradara</span><br>
+                                    <span class="text-white-75">🎬 {{ Str::limit($f['sutradara'], 20) }}</span>
+                                </div>
+                            @endif
+                            @if ($f['aktor'] ?? null)
+                                <div class="mt-1" style="font-size:.68rem;">
+                                    <span class="text-white-50" style="font-size:.6rem; text-transform:uppercase; letter-spacing:.04em;">Aktor</span><br>
+                                    <span class="text-white-75">🎭 {{ Str::limit(explode(',', $f['aktor'])[0], 20) }}</span>
+                                </div>
                             @endif
                             @if ($f['komposer'])
                                 <div class="mt-1 text-sand" style="font-size:.68rem;">🎼 {{ Str::limit($f['komposer'], 20) }}</div>
@@ -313,13 +322,19 @@
                 @if (!empty($featured['castCrew']))
                     <div class="d-flex flex-wrap gap-3">
                         @foreach (collect($featured['castCrew'])->where('peran', 'Aktor')->take(4) as $orang)
-                            <a href="{{ route('person.detail', $orang['id']) }}" class="text-decoration-none text-white text-center" style="width:70px;">
+                            <a href="{{ route('person.detail', $orang['id']) }}" class="text-decoration-none text-white text-center" style="width:75px;"
+                               title="{{ $orang['nama'] }}{{ !empty($orang['karakter']) ? ' sebagai ' . $orang['karakter'] : '' }}">
                                 @if ($orang['foto'])
                                     <img src="{{ $orang['foto'] }}" class="rounded-circle mb-1" style="width:56px;height:56px;object-fit:cover;">
                                 @else
                                     <div class="rounded-circle bg-white bg-opacity-10 mx-auto mb-1" style="width:56px;height:56px;"></div>
                                 @endif
                                 <div style="font-size:.68rem;">{{ Str::limit($orang['nama'], 14) }}</div>
+                                @if (!empty($orang['karakter']))
+                                    <div class="text-sand text-truncate" style="font-size:.6rem;" title="{{ $orang['karakter'] }}">
+                                        {{ Str::limit($orang['karakter'], 12) }}
+                                    </div>
+                                @endif
                             </a>
                         @endforeach
                     </div>

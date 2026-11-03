@@ -8,7 +8,8 @@ Versi CineGraph mengikuti pola Turtle yang ditentukan:
   - namespace dan URI resource memakai http://pilem.org/cinegraph/...
   - film diidentifikasi memakai IMDb ID (mis. movie:tt0468569) jika tersedia;
     jika tidak, memakai ID fallback movie:tmdb-{id}.
-  - genre, sutradara, aktor, dan negara merupakan resource tersendiri, bukan literal.
+  - genre, sutradara, aktor, negara, dan penampilan aktor merupakan resource tersendiri.
+  - karakter yang diperankan disimpan pada schema:PerformanceRole melalui schema:characterName.
   - metadata film dikelompokkan memakai schema.org dan properti tambahan film:.
   - rating dari TMDB disimpan sebagai film:tmdbRating, bukan film:imdbRating,
     karena nilai dari endpoint TMDB bukan rating IMDb.
@@ -55,6 +56,7 @@ MOVIE_NS = Namespace("http://pilem.org/cinegraph/resource/movie/")
 PERSON_NS = Namespace("http://pilem.org/cinegraph/resource/person/")
 GENRE_NS = Namespace("http://pilem.org/cinegraph/resource/genre/")
 COUNTRY_NS = Namespace("http://pilem.org/cinegraph/resource/country/")
+ROLE_NS = Namespace("http://pilem.org/cinegraph/resource/role/")
 
 REQUEST_TIMEOUT = 10
 RATE_LIMIT_DELAY = 0.3
@@ -200,6 +202,7 @@ def build_graph(movies):
     g.bind("person", PERSON_NS, replace=True)
     g.bind("genre", GENRE_NS, replace=True)
     g.bind("country", COUNTRY_NS, replace=True)
+    g.bind("role", ROLE_NS, replace=True)
     g.bind("rdfs", RDFS, replace=True)
     g.bind("xsd", XSD, replace=True)
     g.bind("owl", OWL, replace=True)
@@ -338,10 +341,37 @@ def build_graph(movies):
                 g.add((movie_uri, SCHEMA.director,
                        get_person_uri(crew["name"], crew.get("profile_path"))))
 
-        for cast in (credits.get("cast", []) or [])[:MAX_CAST]:
-            if cast.get("name"):
-                g.add((movie_uri, SCHEMA.actor,
-                       get_person_uri(cast["name"], cast.get("profile_path"))))
+        for cast_index, cast in enumerate((credits.get("cast", []) or [])[:MAX_CAST]):
+            actor_name = (cast.get("name") or "").strip()
+            if not actor_name:
+                continue
+
+            # Simpan relasi langsung Movie -> Person agar query/aplikasi lama
+            # yang memakai schema:actor tetap kompatibel.
+            person_uri = get_person_uri(actor_name, cast.get("profile_path"))
+            g.add((movie_uri, SCHEMA.actor, person_uri))
+
+            # Informasi karakter bersifat spesifik untuk satu film dan satu
+            # penampilan aktor. Karena itu, karakter tidak ditempelkan langsung
+            # ke resource Person (aktor yang sama dapat memerankan karakter
+            # berbeda di film lain).
+            person_tmdb_id = cast.get("id")
+            cast_order = cast.get("order", cast_index)
+            character_name = (cast.get("character") or "").strip()
+            person_key = str(person_tmdb_id) if person_tmdb_id is not None else slugify(actor_name)
+            role_parts = [str(tmdb_id), person_key, str(cast_order)]
+            if character_name:
+                role_parts.append(slugify(character_name))
+            role_uri = ROLE_NS["-".join(role_parts)]
+
+            # Pola Schema.org: PerformanceRole menyimpan actor dan characterName.
+            # Movie dihubungkan ke role memakai properti khusus CineGraph agar
+            # relasi Movie -> Person yang sudah digunakan aplikasi tetap tersedia.
+            g.add((movie_uri, FILM_NS.performanceRole, role_uri))
+            g.add((role_uri, RDF.type, SCHEMA.PerformanceRole))
+            g.add((role_uri, SCHEMA.actor, person_uri))
+            if character_name:
+                g.add((role_uri, SCHEMA.characterName, Literal(character_name)))
 
         # Hubungkan resource film dengan DBpedia jika TMDB menyediakan Wikidata QID.
         wikidata_id = external_ids.get("wikidata_id")
@@ -385,6 +415,7 @@ def serialize_turtle_ordered(graph: Graph, output_path: str) -> None:
         ("person", PERSON_NS),
         ("genre", GENRE_NS),
         ("country", COUNTRY_NS),
+        ("role", ROLE_NS),
         ("rdfs", RDFS),
         ("xsd", XSD),
         ("owl", OWL),
@@ -406,15 +437,17 @@ def serialize_turtle_ordered(graph: Graph, output_path: str) -> None:
         SCHEMA.genre: 7,
         SCHEMA.director: 8,
         SCHEMA.actor: 9,
-        SCHEMA.countryOfOrigin: 10,
-        FILM_NS.tmdbRating: 11,
-        FILM_NS.rated: 12,
-        FILM_NS.boxOfficeUSD: 13,
-        FILM_NS.tmdbId: 14,
-        FILM_NS.imdbId: 15,
-        FILM_NS.wikidataId: 16,
-        SCHEMA.image: 17,
-        OWL.sameAs: 18,
+        FILM_NS.performanceRole: 10,
+        SCHEMA.countryOfOrigin: 11,
+        FILM_NS.tmdbRating: 12,
+        FILM_NS.rated: 13,
+        FILM_NS.boxOfficeUSD: 14,
+        FILM_NS.tmdbId: 15,
+        FILM_NS.imdbId: 16,
+        FILM_NS.wikidataId: 17,
+        SCHEMA.image: 18,
+        OWL.sameAs: 19,
+        SCHEMA.characterName: 20,
     }
 
     def object_sort_key(term):
@@ -435,10 +468,12 @@ def serialize_turtle_ordered(graph: Graph, output_path: str) -> None:
             group = 1
         elif uri.startswith(str(PERSON_NS)):
             group = 2
-        elif uri.startswith(str(COUNTRY_NS)):
+        elif uri.startswith(str(ROLE_NS)):
             group = 3
-        else:
+        elif uri.startswith(str(COUNTRY_NS)):
             group = 4
+        else:
+            group = 5
         return (group, subject_title(subject), uri)
 
     lines = [f"@prefix {prefix}: <{namespace}> ." for prefix, namespace in prefixes]

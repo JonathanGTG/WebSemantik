@@ -76,12 +76,13 @@ class FilmController extends Controller
             PREFIX schema: <https://schema.org/>
             PREFIX rdfs: <http://www.w3.org/2000/01/rdf-schema#>
             PREFIX film: <http://pilem.org/cinegraph/ontology#>
-            SELECT ?film ?nama ?tahun ?tmdbId
+            SELECT ?film ?nama ?tahun ?tmdbId (SAMPLE(?posterRdf) AS ?posterRdf)
                    (GROUP_CONCAT(DISTINCT ?genreLabel; separator=", ") AS ?genres)
                    (GROUP_CONCAT(DISTINCT ?negaraLabel; separator=", ") AS ?negaraAsal) WHERE {
                 ?film a schema:Movie ;
                       schema:name ?nama ;
                       schema:datePublished ?tahun .
+                OPTIONAL { ?film schema:image ?posterRdf . }
                 OPTIONAL { ?film film:tmdbId ?tmdbId . }
                 OPTIONAL { ?film schema:genre ?genreRes . ?genreRes rdfs:label ?genreLabel . }
                 OPTIONAL { ?film schema:countryOfOrigin ?negaraRes . ?negaraRes schema:name ?negaraLabel . }
@@ -111,13 +112,15 @@ class FilmController extends Controller
                     'genre' => isset($row->genres) && (string) $row->genres !== '' ? (string) $row->genres : null,
                     'negara' => isset($row->negaraAsal) && (string) $row->negaraAsal !== '' ? (string) $row->negaraAsal : null,
                     'poster' => null,
+                    'posterRdf' => isset($row->posterRdf) ? (string) $row->posterRdf : null,
                 ];
             }
 
-            // Ambil poster dari database (cepat & hemat resource)
+            // Ambil poster dari database lokal, fallback ke schema:image dari RDF
             $posters = MoviePoster::getPosters($filmIds);
             foreach ($films as &$f) {
-                $f['poster'] = $posters[$f['id']] ?? null;
+                $f['poster'] = $posters[$f['id']] ?? $f['posterRdf'] ?? null;
+                unset($f['posterRdf']);
             }
             unset($f);
         } catch (EasyRdfException $e) {
@@ -194,12 +197,13 @@ class FilmController extends Controller
                 PREFIX schema: <https://schema.org/>
                 PREFIX rdfs: <http://www.w3.org/2000/01/rdf-schema#>
                 PREFIX film: <http://pilem.org/cinegraph/ontology#>
-                SELECT ?film ?nama ?tahun ?tmdbId
+                SELECT ?film ?nama ?tahun ?tmdbId (SAMPLE(?posterRdf) AS ?posterRdf)
                        (GROUP_CONCAT(DISTINCT ?genreLabel; separator=", ") AS ?genres)
                        (GROUP_CONCAT(DISTINCT ?negaraLabel; separator=", ") AS ?negaraAsal) WHERE {
                     ?film a schema:Movie ;
                           schema:name ?nama ;
                           schema:datePublished ?tahun .
+                    OPTIONAL { ?film schema:image ?posterRdf . }
                     OPTIONAL { ?film film:tmdbId ?tmdbId . }
                     OPTIONAL { ?film schema:genre ?genreRes . ?genreRes rdfs:label ?genreLabel . }
                     OPTIONAL { ?film schema:countryOfOrigin ?negaraRes . ?negaraRes schema:name ?negaraLabel . }
@@ -228,12 +232,14 @@ class FilmController extends Controller
                         'genre' => isset($row->genres) && (string) $row->genres !== '' ? (string) $row->genres : null,
                         'negara' => isset($row->negaraAsal) && (string) $row->negaraAsal !== '' ? (string) $row->negaraAsal : null,
                         'poster' => null,
+                        'posterRdf' => isset($row->posterRdf) ? (string) $row->posterRdf : null,
                     ];
                 }
 
                 $posters = MoviePoster::getPosters($filmIds);
                 foreach ($films as &$f) {
-                    $f['poster'] = $posters[$f['id']] ?? null;
+                    $f['poster'] = $posters[$f['id']] ?? $f['posterRdf'] ?? null;
+                    unset($f['posterRdf']);
                 }
                 unset($f);
             } catch (EasyRdfException $e) {
@@ -314,12 +320,13 @@ class FilmController extends Controller
             PREFIX rdfs: <http://www.w3.org/2000/01/rdf-schema#>
             PREFIX owl: <http://www.w3.org/2002/07/owl#>
             PREFIX film: <http://pilem.org/cinegraph/ontology#>
-            SELECT ?nama ?tahun ?sutradara ?durasi ?sameAs ?tmdbId ?imdbId ?boxOffice ?rating ?deskripsi ?rated ?runtimeMinutes
+            SELECT ?nama ?tahun ?sutradara ?durasi ?sameAs ?tmdbId ?imdbId ?boxOffice ?rating ?deskripsi ?rated ?runtimeMinutes (SAMPLE(?posterRdf) AS ?posterRdf)
                    (GROUP_CONCAT(DISTINCT ?genreLabel; separator=", ") AS ?genres)
                    (GROUP_CONCAT(DISTINCT ?aktorNama; separator=", ") AS ?aktor)
                    (GROUP_CONCAT(DISTINCT ?negaraLabel; separator=", ") AS ?negaraAsal) WHERE {
                 <$filmUri> schema:name ?nama ;
                            schema:datePublished ?tahun .
+                OPTIONAL { <$filmUri> schema:image ?posterRdf . }
                 OPTIONAL { <$filmUri> schema:duration ?durasi . }
                 OPTIONAL { <$filmUri> owl:sameAs ?sameAs . }
                 OPTIONAL { <$filmUri> film:tmdbId ?tmdbId . }
@@ -345,7 +352,7 @@ class FilmController extends Controller
 
         $row = $result[0];
 
-        // Poster dan studio diambil dari database lokal agar reload cepat
+        // Poster dan studio diambil dari database lokal, fallback ke schema:image dari RDF
         $posterRecord = MoviePoster::where('film_id', $id)
             ->when(isset($row->tmdbId), fn ($q) => $q->orWhere('tmdb_id', (int) (string) $row->tmdbId))
             ->first();
@@ -361,7 +368,7 @@ class FilmController extends Controller
             'studio' => $posterRecord?->studio,
             'aktor' => isset($row->aktor) && (string) $row->aktor !== '' ? (string) $row->aktor : null,
             'negara' => isset($row->negaraAsal) && (string) $row->negaraAsal !== '' ? (string) $row->negaraAsal : null,
-            'poster' => $posterRecord?->display_poster,
+            'poster' => $posterRecord?->display_poster ?: (isset($row->posterRdf) && (string) $row->posterRdf !== '' ? (string) $row->posterRdf : null),
             'durasi' => isset($row->durasi) ? (string) $row->durasi : null,
             'sameAs' => isset($row->sameAs) ? (string) $row->sameAs : null,
             'tmdbId' => isset($row->tmdbId) ? (string) $row->tmdbId : ($posterRecord?->tmdb_id ? (string) $posterRecord->tmdb_id : null),
@@ -425,16 +432,19 @@ class FilmController extends Controller
             PREFIX schema: <https://schema.org/>
             PREFIX rdfs: <http://www.w3.org/2000/01/rdf-schema#>
             PREFIX film: <http://pilem.org/cinegraph/ontology#>
-            SELECT ?film ?nama ?tahun ?rating ?durasi ?sutradara ?tmdbId
-                   (GROUP_CONCAT(DISTINCT ?genreLabel; separator=", ") AS ?genres) WHERE {
+            SELECT ?film ?nama ?tahun ?rating ?durasi ?sutradara ?tmdbId (SAMPLE(?posterRdf) AS ?posterRdf)
+                   (GROUP_CONCAT(DISTINCT ?genreLabel; separator=", ") AS ?genres)
+                   (GROUP_CONCAT(DISTINCT ?aktorNama; separator=", ") AS ?aktor) WHERE {
                 ?film a schema:Movie ;
                       schema:name ?nama ;
                       schema:datePublished ?tahun .
+                OPTIONAL { ?film schema:image ?posterRdf . }
                 OPTIONAL { ?film film:tmdbRating ?rating . }
                 OPTIONAL { ?film film:tmdbId ?tmdbId . }
                 OPTIONAL { ?film schema:duration ?durasi . }
                 OPTIONAL { ?film schema:genre ?genreRes . ?genreRes rdfs:label ?genreLabel . }
                 OPTIONAL { ?film schema:director ?sutradaraRes . ?sutradaraRes schema:name ?sutradara . }
+                OPTIONAL { ?film schema:actor ?aktorRes . ?aktorRes schema:name ?aktorNama . }
                 $studioFilter
             }
             GROUP BY ?film ?nama ?tahun ?rating ?durasi ?sutradara ?tmdbId
@@ -456,10 +466,12 @@ class FilmController extends Controller
                     'nama' => (string) $row->nama,
                     'tahun' => isset($row->tahun) ? (string) $row->tahun : null,
                     'poster' => null,
+                    'posterRdf' => isset($row->posterRdf) ? (string) $row->posterRdf : null,
                     'rating' => isset($row->rating) ? (float) (string) $row->rating : null,
                     'tagline' => null,
                     'durasi' => isset($row->durasi) ? (string) $row->durasi : null,
                     'sutradara' => isset($row->sutradara) ? (string) $row->sutradara : null,
+                    'aktor' => isset($row->aktor) && (string) $row->aktor !== '' ? (string) $row->aktor : null,
                     'komposer' => null,
                     'tmdbId' => isset($row->tmdbId) ? (string) $row->tmdbId : null,
                     'genre' => isset($row->genres) && (string) $row->genres !== '' ? (string) $row->genres : null,
@@ -467,12 +479,13 @@ class FilmController extends Controller
                 ];
             }
 
-            // Ambil poster dan studio dari database
+            // Ambil poster dan studio dari database, fallback ke schema:image dari RDF
             $posters = MoviePoster::getPosters($filmIds);
             $posterModels = MoviePoster::whereIn('film_id', $filmIds)->get()->keyBy('film_id');
             foreach ($films as &$f) {
-                $f['poster'] = $posters[$f['id']] ?? null;
+                $f['poster'] = $posters[$f['id']] ?? $f['posterRdf'] ?? null;
                 $f['studio'] = $posterModels[$f['id']]->studio ?? null;
+                unset($f['posterRdf']);
             }
             unset($f);
         } catch (EasyRdfException $e) {
@@ -546,7 +559,8 @@ class FilmController extends Controller
     {
         $query = <<<SPARQL
             PREFIX schema: <https://schema.org/>
-            SELECT DISTINCT ?person ?nama ?peran ?foto WHERE {
+            PREFIX film: <http://pilem.org/cinegraph/ontology#>
+            SELECT ?person ?nama ?peran (SAMPLE(?foto) AS ?foto) (GROUP_CONCAT(DISTINCT ?karakterNama; separator=" / ") AS ?karakter) WHERE {
                 {
                     <$filmUri> schema:director ?person .
                     BIND("Sutradara" AS ?peran)
@@ -555,10 +569,16 @@ class FilmController extends Controller
                 {
                     <$filmUri> schema:actor ?person .
                     BIND("Aktor" AS ?peran)
+                    OPTIONAL {
+                        <$filmUri> film:performanceRole ?role .
+                        ?role schema:actor ?person ;
+                              schema:characterName ?karakterNama .
+                    }
                 }
                 ?person schema:name ?nama .
                 OPTIONAL { ?person schema:image ?foto . }
             }
+            GROUP BY ?person ?nama ?peran
             ORDER BY (?peran = "Aktor") ?nama
         SPARQL;
 
@@ -571,6 +591,7 @@ class FilmController extends Controller
                     'id' => $this->extractId((string) $row->person),
                     'nama' => (string) $row->nama,
                     'peran' => (string) $row->peran,
+                    'karakter' => isset($row->karakter) && (string) $row->karakter !== '' ? (string) $row->karakter : null,
                     'foto' => isset($row->foto) ? (string) $row->foto : null,
                 ];
             }
@@ -638,7 +659,8 @@ class FilmController extends Controller
     {
         $query = <<<SPARQL
             PREFIX schema: <https://schema.org/>
-            SELECT DISTINCT ?film ?namaFilm ?tahun ?peran WHERE {
+            PREFIX film: <http://pilem.org/cinegraph/ontology#>
+            SELECT ?film ?namaFilm ?tahun ?peran (SAMPLE(?posterRdf) AS ?posterRdf) (GROUP_CONCAT(DISTINCT ?karakterNama; separator=" / ") AS ?karakter) WHERE {
                 {
                     ?film schema:director <$personUri> .
                     BIND("Sutradara" AS ?peran)
@@ -647,10 +669,17 @@ class FilmController extends Controller
                 {
                     ?film schema:actor <$personUri> .
                     BIND("Aktor" AS ?peran)
+                    OPTIONAL {
+                        ?film film:performanceRole ?role .
+                        ?role schema:actor <$personUri> ;
+                              schema:characterName ?karakterNama .
+                    }
                 }
+                OPTIONAL { ?film schema:image ?posterRdf . }
                 ?film schema:name ?namaFilm .
                 OPTIONAL { ?film schema:datePublished ?tahun . }
             }
+            GROUP BY ?film ?namaFilm ?tahun ?peran
             ORDER BY (?peran = "Aktor") ?namaFilm
         SPARQL;
 
@@ -667,13 +696,16 @@ class FilmController extends Controller
                     'nama' => (string) $row->namaFilm,
                     'tahun' => isset($row->tahun) ? (string) $row->tahun : null,
                     'poster' => null,
+                    'posterRdf' => isset($row->posterRdf) ? (string) $row->posterRdf : null,
                     'peran' => (string) $row->peran,
+                    'karakter' => isset($row->karakter) && (string) $row->karakter !== '' ? (string) $row->karakter : null,
                 ];
             }
 
             $posters = MoviePoster::getPosters($filmIds);
             foreach ($filmografi as &$item) {
-                $item['poster'] = $posters[$item['id']] ?? null;
+                $item['poster'] = $posters[$item['id']] ?? $item['posterRdf'] ?? null;
+                unset($item['posterRdf']);
             }
             unset($item);
         } catch (EasyRdfException $e) {
@@ -691,7 +723,7 @@ class FilmController extends Controller
     {
         $query = <<<SPARQL
             PREFIX schema: <https://schema.org/>
-            SELECT DISTINCT ?filmLain ?namaLain WHERE {
+            SELECT ?filmLain ?namaLain (SAMPLE(?posterRdf) AS ?posterRdf) WHERE {
                 {
                     <$filmUri> schema:director ?sutradaraRes .
                     ?filmLain schema:director ?sutradaraRes .
@@ -702,8 +734,10 @@ class FilmController extends Controller
                     ?filmLain schema:genre ?genreRes .
                 }
                 ?filmLain schema:name ?namaLain .
+                OPTIONAL { ?filmLain schema:image ?posterRdf . }
                 FILTER(?filmLain != <$filmUri>)
             }
+            GROUP BY ?filmLain ?namaLain
             LIMIT 6
         SPARQL;
 
@@ -720,12 +754,14 @@ class FilmController extends Controller
                     'id' => $fId,
                     'nama' => (string) $row->namaLain,
                     'poster' => null,
+                    'posterRdf' => isset($row->posterRdf) ? (string) $row->posterRdf : null,
                 ];
             }
 
             $posters = MoviePoster::getPosters($filmIds);
             foreach ($similar as &$item) {
-                $item['poster'] = $posters[$item['id']] ?? null;
+                $item['poster'] = $posters[$item['id']] ?? $item['posterRdf'] ?? null;
+                unset($item['posterRdf']);
             }
             unset($item);
         } catch (EasyRdfException $e) {
@@ -1008,8 +1044,7 @@ class FilmController extends Controller
             $filters[] = 'FILTER('.
                 'CONTAINS(LCASE(?nama), LCASE("'.$escKeyword.'")) || '.
                 'CONTAINS(LCASE(?sutradaraNama), LCASE("'.$escKeyword.'")) || '.
-                'CONTAINS(LCASE(?aktorNama), LCASE("'.$escKeyword.'")) || '.
-                'CONTAINS(LCASE(?deskripsi), LCASE("'.$escKeyword.'"))'.
+                'CONTAINS(LCASE(?aktorNama), LCASE("'.$escKeyword.'"))'.
             ')';
         }
 

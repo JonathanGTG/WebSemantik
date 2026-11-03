@@ -14,7 +14,7 @@ class SyncMoviePosters extends Command
      *
      * @var string
      */
-    protected $signature = 'cinegraph:sync-posters {--download : Unduh file gambar secara lokal ke public/images/posters/} {--source=dataset/film2.ttl : File dataset TTL sumber}';
+    protected $signature = 'cinegraph:sync-posters {--download : Unduh file gambar secara lokal ke public/images/posters/} {--source=dataset/film.ttl : File dataset TTL sumber}';
 
     /**
      * The console command description.
