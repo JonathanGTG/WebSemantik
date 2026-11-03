@@ -79,14 +79,6 @@ film:rated a owl:DatatypeProperty ;
     rdfs:domain schema:Movie ;
     rdfs:range xsd:string .
 
-# ---------- Custom object properties ----------
-
-film:performanceRole a owl:ObjectProperty ;
-    rdfs:label "Performance Role"@en ;
-    rdfs:comment "Menghubungkan film ke peran performa pemeran/aktor (schema:PerformanceRole) untuk mencatat karakter yang diperankan."@en ;
-    rdfs:domain schema:Movie ;
-    rdfs:range schema:PerformanceRole .
-
 # ---------- Schema.org properties reused by CineGraph ----------
 # schema:name             -> judul film atau nama orang/negara
 # schema:description      -> sinopsis film
@@ -96,7 +88,6 @@ film:performanceRole a owl:ObjectProperty ;
 # schema:genre            -> film ke resource genre:Genre
 # schema:director         -> film ke resource schema:Person
 # schema:actor            -> film ke satu atau lebih resource schema:Person
-# schema:characterName    -> nama karakter yang diperankan (pada resource schema:PerformanceRole)
 # schema:countryOfOrigin  -> film ke resource schema:Country
 # rdfs:label              -> label resource genre
 # owl:sameAs              -> tautan ke resource DBpedia jika pemetaan tersedia
