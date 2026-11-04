@@ -192,12 +192,12 @@
                         @endif
                     </div>
                     @if (!empty($film['externalData']['exchangeRate']))
-                        <div class="data-source-note mt-1">
+                        <!-- <div class="data-source-note mt-1">
                             Kurs: 1 USD = Rp{{ number_format($film['externalData']['exchangeRate'], 0, ',', '.') }}
                             @if (!empty($film['externalData']['exchangeRateAt']))
                                 · per {{ $film['externalData']['exchangeRateAt'] }} (ExchangeRate API)
                             @endif
-                        </div>
+                        </div> -->
                     @else
                         <div class="data-source-note mt-1">Konversi kurs sementara tidak tersedia.</div>
                     @endif
@@ -213,12 +213,6 @@
         <p property="description" class="text-white-50" style="max-width:800px; line-height:1.75;">
             {{ $film['sinopsis'] }}
         </p>
-        @if ($film['sameAs'])
-            <div class="data-source-note">
-                Sumber: <a href="{{ $film['sameAs'] }}" target="_blank" rel="noopener" class="text-sand text-decoration-none">DBpedia</a>
-                via federated SPARQL (<code>owl:sameAs</code>)
-            </div>
-        @endif
     @endif
 
     {{-- ======================= CAST & CREW ======================= --}}
@@ -250,7 +244,6 @@
             <iframe src="https://www.youtube.com/embed/{{ $film['externalData']['trailerKey'] }}"
                     title="Trailer {{ $film['nama'] }}" allowfullscreen style="border:0;"></iframe>
         </div>
-        <div class="data-source-note mt-2">Trailer via TMDB · YouTube</div>
     @endif
 
     {{-- ======================= OST + STREAMING + REVIEW ======================= --}}
@@ -318,10 +311,6 @@
                         </div>
                     @endif
                 @endforeach
-                <div class="data-source-note">
-                    Data oleh <a href="https://www.justwatch.com/" target="_blank" rel="noopener" class="text-sand">JustWatch</a>
-                    via TMDB.
-                </div>
             @else
                 <div class="card-flat p-3 text-center">
                     <div class="text-white-50 small">Belum tersedia data streaming untuk wilayah Indonesia.</div>
@@ -348,10 +337,6 @@
     @if (!empty($film['filmSejenis']))
         <hr class="pilem-hr my-4">
         <div class="d-flex justify-content-between align-items-center mb-3 flex-wrap gap-2">
-            <div>
-                <div class="section-label mb-0">🎯 Film Sejenis</div>
-                <div class="data-source-note">Berdasarkan sutradara atau genre yang sama — SPARQL graph traversal</div>
-            </div>
             <a href="{{ route('film.search', ['genre' => explode(',', $film['genre'])[0] ?? '']) }}"
                class="btn btn-outline-pilem btn-sm" style="font-size:.78rem;">
                 Lihat semua genre ini →
