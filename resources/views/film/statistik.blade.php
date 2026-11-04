@@ -23,9 +23,6 @@
 
 <div class="text-uppercase small fw-bold mb-1 text-sand" style="letter-spacing:.05em;">Dataset Analytics</div>
 <h1 class="fw-bold mb-1">Statistik Film</h1>
-<p class="text-white-50 small mb-5">
-    Query SPARQL agregasi (<code>GROUP BY</code> + <code>COUNT</code>) langsung ke Fuseki — bukan data statis.
-</p>
 
 @if ($errors->any())
     <div class="alert alert-danger">{{ $errors->first('sparql') }}</div>

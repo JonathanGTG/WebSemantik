@@ -308,7 +308,6 @@
                             title="Trailer {{ $featured['nama'] }}" allowfullscreen style="border:0;"></iframe>
                 </div>
                 <div class="fw-bold">{{ $featured['nama'] }}</div>
-                <div class="text-white-50 small mb-3">Trailer resmi &mdash; YouTube (via TMDB)</div>
 
                 @if (!empty($featured['castCrew']))
                     <div class="d-flex flex-wrap gap-3">
@@ -384,7 +383,6 @@
                 ] as $prompt)
                     <button type="button" class="quick-prompt pilmy-quick-prompt">{{ $prompt }}</button>
                 @endforeach
-                <small class="text-white-50 d-block mt-2">Jawaban dari Google Gemini dengan referensi dataset CineGraph. Klik poster film untuk melihat detail lengkap!</small>
             </div>
         </div>
     </div>
@@ -436,8 +434,7 @@
                 </tbody>
             </table>
         </div>
-        <small class="text-white-50">Data oleh <a href="https://www.justwatch.com/" target="_blank" rel="noopener" class="text-decoration-underline text-sand">JustWatch</a>. Logo mengarah ke halaman JustWatch film terkait (TMDB tidak sediakan deep-link per-platform).</small>
-    @endif
+     @endif
 </div>
 
 @endif {{-- end isSearchMode else --}}
