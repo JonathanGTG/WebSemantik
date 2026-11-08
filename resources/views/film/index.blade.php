@@ -120,9 +120,9 @@
             <div class="col">
                 <a href="{{ route('film.detail', $film['id']) }}" class="text-decoration-none text-white">
                     <div class="card-pilem h-100">
-                        @if ($film['poster'])
+                        @if (pilemPoster($film['id'], $film['poster']))
                             <div class="position-relative">
-                                <img src="{{ $film['poster'] }}" class="poster" alt="{{ $film['nama'] }}">
+                                <img src="{{ pilemPoster($film['id'], $film['poster']) }}" class="poster" alt="{{ $film['nama'] }}">
                                 @if ($film['rating'] ?? false)
                                     <span class="rating-badge position-absolute top-0 end-0 m-2" style="font-size:.7rem; padding:.2rem .5rem;">
                                         ⭐ {{ number_format($film['rating'], 1) }}
@@ -161,8 +161,8 @@
                 <div class="text-white-50 fw-bold" style="width:28px; font-size:.8rem; flex-shrink:0;">
                     {{ sprintf('%02d', $i + 1) }}
                 </div>
-                @if ($film['poster'])
-                    <img src="{{ $film['poster'] }}" alt="{{ $film['nama'] }}">
+                @if (pilemPoster($film['id'], $film['poster']))
+                    <img src="{{ pilemPoster($film['id'], $film['poster']) }}" alt="{{ $film['nama'] }}">
                 @else
                     <div class="no-poster">🎬</div>
                 @endif

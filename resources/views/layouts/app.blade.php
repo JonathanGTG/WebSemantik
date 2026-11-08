@@ -1,11 +1,9 @@
 {{--
-    Layout utama -- tema gelap "pilem" (dari Figma tim), dipakai semua
-    halaman (search, detail, statistik, person, DAN home). Sebelumnya
-    home.blade.php punya <head>/nav/footer sendiri yang duplikat CSS-nya --
-    sekarang satu sumber di sini saja.
+    Layout utama -- tema gelap navy "pilem" (mengikuti referensi desain tim).
+    Dipakai semua halaman (home, search, detail, person, statistik).
+    Nama variabel lama (--sun, --sky, --sand, --ocean) dipertahankan sebagai
+    alias supaya halaman lain ikut berganti tema tanpa perlu diubah satu-satu.
 --}}
-
-
 <!DOCTYPE html>
 <html lang="id">
 <head>
@@ -13,111 +11,203 @@
     <meta name="viewport" content="width=device-width, initial-scale=1">
     <meta name="csrf-token" content="{{ csrf_token() }}">
     <title>@yield('title', 'pilem. -- Search Engine Film')</title>
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@400;500;600;700;800&display=swap" rel="stylesheet">
     <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/css/bootstrap.min.css" rel="stylesheet">
     <style>
         :root {
-            --white: #FFFFFF;
-            --sun: #F2A900;
-            --ocean: #003087;
-            --sand: #FFE264;
-            --sky: #307FE2;
-            --midnight: #00205B;
-            --black: #000000;
+            /* Permukaan */
+            --bg: #060b18;
+            --bg-raised: #0b1326;
+            --surface: #0e1830;
+            --surface-2: #131f3b;
+            --line: rgba(130, 160, 255, .13);
+            --line-strong: rgba(130, 160, 255, .26);
+            /* Teks */
+            --text: #eef2fb;
+            --text-dim: #9aa6c2;
+            --text-mute: #6b7794;
+            /* Aksen */
+            --gold: #f7b928;
+            --gold-soft: #ffd877;
+            --cyan: #27c4e8;
+            --red: #e03b3b;
+            --blue: #2f7fe0;
+            /* Alias nama lama (dipakai view lain) */
+            --sun: var(--gold);
+            --sand: var(--gold-soft);
+            --sky: var(--cyan);
+            --ocean: var(--surface);
+            --midnight: var(--bg-raised);
+            --white: #fff;
+            --black: #000;
+            --radius: 18px;
         }
+        * { -webkit-font-smoothing: antialiased; }
+        html { scroll-behavior: smooth; }
         body {
-            background: linear-gradient(180deg, var(--sky) 0%, var(--ocean) 45%, var(--black) 100%);
+            background:
+                radial-gradient(1100px 520px at 12% -8%, rgba(47, 127, 224, .16), transparent 60%),
+                radial-gradient(900px 480px at 100% 0%, rgba(39, 196, 232, .08), transparent 60%),
+                var(--bg);
             background-attachment: fixed;
-            color: var(--white);
-            font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif;
+            color: var(--text);
+            font-family: 'Plus Jakarta Sans', -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
             min-height: 100vh;
+            padding-bottom: 5.5rem; /* ruang untuk mini player */
         }
+        .container { max-width: 1240px; }
         a { color: inherit; }
-        a.link-sky { color: var(--sky); }
+        h1, h2, h3, .section-title { letter-spacing: -.02em; }
+        :focus-visible { outline: 2px solid var(--cyan); outline-offset: 2px; border-radius: 6px; }
+
+        /* ---------- Navbar ---------- */
         .navbar-pilem {
-            background: rgba(0,0,0,0.35);
-            backdrop-filter: blur(6px);
+            background: rgba(6, 11, 24, .82);
+            backdrop-filter: blur(14px);
+            border-bottom: 1px solid var(--line);
             position: sticky; top: 0; z-index: 1030;
         }
-        .navbar-pilem .brand { font-weight: 800; font-size: 1.3rem; }
-        .navbar-pilem .brand .dot { color: var(--sun); }
-        .nav-pill { padding: .4rem .9rem; border-radius: 999px; font-size: .85rem; font-weight: 600; }
-        .nav-pill.active { background: var(--sky); color: var(--white); }
-        .nav-pill.accent { color: var(--sun); }
-        .search-input {
-            background: rgba(255,255,255,0.08); border: 1px solid rgba(255,255,255,0.15);
-            color: var(--white); border-radius: 999px;
+        .navbar-pilem .brand { font-weight: 800; font-size: 1.7rem; letter-spacing: -.04em; line-height: 1; text-decoration: none; color: var(--text); }
+        .navbar-pilem .brand .dot { color: var(--gold); }
+        .nav-group {
+            display: flex; gap: .25rem; padding: .3rem;
+            border: 1px solid var(--line); border-radius: 14px; background: rgba(255,255,255,.03);
         }
-        .search-input::placeholder { color: rgba(255,255,255,0.5); }
-        .search-input:focus { background: rgba(255,255,255,0.12); border-color: var(--sky); color: var(--white); box-shadow: none; }
-        .btn-sun { background: var(--sun); color: var(--black); font-weight: 700; border: none; }
-        .btn-sun:hover { background: var(--sand); color: var(--black); }
-        .btn-outline-pilem { border: 1px solid rgba(255,255,255,0.4); color: var(--white); font-weight: 600; background: transparent; }
-        .btn-outline-pilem:hover { background: rgba(255,255,255,0.1); color: var(--white); }
+        .nav-pill {
+            padding: .5rem 1rem; border-radius: 10px; font-size: .82rem; font-weight: 600;
+            color: var(--text-dim); text-decoration: none; border: 1px solid transparent;
+            transition: color .15s, background .15s;
+        }
+        .nav-pill:hover { color: var(--text); }
+        .nav-pill.active { background: rgba(39,196,232,.12); border-color: rgba(39,196,232,.45); color: var(--text); }
+        .nav-pill.accent { color: var(--gold); }
+        .nav-search { position: relative; }
+        .nav-search svg { position: absolute; left: 14px; top: 50%; transform: translateY(-50%); color: var(--text-mute); pointer-events: none; }
+        .nav-search input { padding-left: 2.4rem; width: 300px; }
+
+        /* ---------- Form & tombol ---------- */
+        .search-input, .form-control, .form-select {
+            background: rgba(255,255,255,.04); border: 1px solid var(--line);
+            color: var(--text); border-radius: 12px; font-size: .88rem;
+        }
+        .search-input::placeholder, .form-control::placeholder { color: var(--text-mute); }
+        .search-input:focus, .form-control:focus, .form-select:focus {
+            background: rgba(255,255,255,.07); border-color: var(--cyan); color: var(--text);
+            box-shadow: 0 0 0 3px rgba(39,196,232,.15);
+        }
+        .btn-sun {
+            background: linear-gradient(180deg, #ffc93d, #f2a900); color: #1a1200; font-weight: 700;
+            border: none; border-radius: 12px; box-shadow: 0 6px 20px rgba(247,185,40,.22);
+            transition: transform .12s, box-shadow .12s, filter .12s;
+        }
+        .btn-sun:hover { color: #1a1200; filter: brightness(1.06); transform: translateY(-1px); box-shadow: 0 10px 26px rgba(247,185,40,.3); }
+        .btn-sun:active { transform: translateY(0); }
+        .btn-outline-pilem {
+            border: 1px solid var(--line-strong); color: var(--text); font-weight: 600;
+            background: rgba(255,255,255,.03); border-radius: 12px; transition: background .15s, border-color .15s;
+        }
+        .btn-outline-pilem:hover { background: rgba(255,255,255,.08); color: var(--text); border-color: rgba(255,255,255,.35); }
+        .btn-cyan { background: rgba(39,196,232,.14); border: 1px solid rgba(39,196,232,.5); color: var(--text); font-weight: 600; border-radius: 12px; }
+        .btn-cyan:hover { background: rgba(39,196,232,.24); color: var(--text); }
+
+        /* ---------- Chip, badge ---------- */
         .badge-studio {
-            background: var(--sky); color: var(--white); font-weight: 700; font-size: .7rem;
-            padding: .3rem .6rem; border-radius: 6px;
+            background: var(--blue); color: #fff; font-weight: 800; font-size: .62rem;
+            padding: .3rem .55rem; border-radius: 7px; letter-spacing: .04em;
         }
+        .badge-studio.mcu { background: var(--red); }
+        .badge-studio.pixar { background: var(--blue); }
+        .badge-studio.disney { background: #5b4bd6; }
         .rating-badge {
-            background: rgba(0,0,0,0.55); border: 1px solid var(--sand); color: var(--sand);
-            font-weight: 700; border-radius: 999px; padding: .3rem .7rem; font-size: .85rem;
+            background: rgba(6,11,24,.72); border: 1px solid rgba(247,185,40,.55); color: var(--gold-soft);
+            font-weight: 700; border-radius: 999px; padding: .28rem .65rem; font-size: .78rem;
+            backdrop-filter: blur(6px);
         }
+
+        /* ---------- Kartu ---------- */
         .card-pilem {
-            background: rgba(255,255,255,0.06); border: 1px solid rgba(255,255,255,0.1);
-            border-radius: 14px; overflow: hidden; transition: transform .15s, border-color .15s;
-            height: 100%;
+            background: linear-gradient(180deg, rgba(255,255,255,.045), rgba(255,255,255,.02));
+            border: 1px solid var(--line); border-radius: var(--radius); overflow: hidden;
+            transition: border-color .18s, transform .18s, box-shadow .18s; height: 100%;
         }
-        .card-pilem:hover { transform: translateY(-4px); border-color: var(--sky); }
-        .card-pilem.active-feature { border-color: var(--sun); box-shadow: 0 0 0 2px var(--sun); }
-        .card-pilem img.poster { width: 100%; aspect-ratio: 2/3; object-fit: cover; }
-        .card-flat {
-            background: rgba(255,255,255,0.05); border: 1px solid rgba(255,255,255,0.1); border-radius: 14px;
+        .card-pilem:hover { border-color: rgba(39,196,232,.5); transform: translateY(-3px); }
+        .card-pilem.active-feature { border-color: var(--cyan); box-shadow: 0 0 0 1px var(--cyan), 0 0 34px rgba(39,196,232,.22); }
+        .card-pilem img.poster { width: 100%; aspect-ratio: 2/3; object-fit: cover; background: var(--surface); }
+        .card-flat { background: rgba(255,255,255,.035); border: 1px solid var(--line); border-radius: var(--radius); }
+        .panel { background: var(--bg-raised); border: 1px solid var(--line); border-radius: 22px; }
+        .poster-fallback {
+            aspect-ratio: 2/3; display: flex; align-items: center; justify-content: center;
+            background: linear-gradient(160deg, var(--surface-2), var(--surface)); color: var(--text-mute);
+            font-weight: 800; text-align: center; padding: 1rem; font-size: .9rem;
         }
-        .section-title { font-weight: 800; font-size: 1.4rem; }
-        .pilem-hr { border-color: rgba(255,255,255,0.15); }
-        .hero-tab { font-size: .8rem; padding: .3rem .7rem; border-radius: 8px; color: rgba(255,255,255,0.6); }
-        .hero-tab.active { background: var(--sky); color: var(--white); }
-        .text-white-50 { color: rgba(255,255,255,0.55) !important; }
-        .text-sand { color: var(--sand) !important; }
-        .list-group-item {
-            background: rgba(255,255,255,0.06); border-color: rgba(255,255,255,0.1); color: var(--white);
-        }
-        .form-control, .form-select {
-            background: rgba(255,255,255,0.08); border: 1px solid rgba(255,255,255,0.15); color: var(--white);
-        }
-        .form-control:focus, .form-select:focus { background: rgba(255,255,255,0.12); color: var(--white); border-color: var(--sky); box-shadow: none; }
-        .form-control::placeholder { color: rgba(255,255,255,0.4); }
-        table.table-pilem { color: var(--white); }
-        table.table-pilem th { color: var(--sand); font-size: .75rem; text-transform: uppercase; border-color: rgba(255,255,255,0.15); }
-        table.table-pilem td { border-color: rgba(255,255,255,0.1); vertical-align: middle; }
-        .provider-logo { width: 34px; height: 34px; border-radius: 6px; }
-        .chat-bubble-user { background: var(--sky); border-radius: 12px 12px 0 12px; padding: .5rem .8rem; max-width: 80%; }
-        .chat-bubble-bot { background: rgba(255,255,255,0.08); border-radius: 12px 12px 12px 0; padding: .5rem .8rem; max-width: 85%; }
+
+        /* ---------- Tipografi util ---------- */
+        .section-title { font-weight: 800; font-size: 1.7rem; }
+        .eyebrow { font-size: .72rem; font-weight: 700; letter-spacing: .08em; text-transform: uppercase; color: var(--cyan); }
+        .text-white-50, .text-dim { color: var(--text-dim) !important; }
+        .text-sand { color: var(--gold-soft) !important; }
+        .text-cyan { color: var(--cyan) !important; }
+        .pilem-hr { border-color: var(--line); opacity: 1; }
+        a.link-sky { color: var(--cyan); }
+        .hero-tab { font-size: .8rem; padding: .35rem .75rem; border-radius: 10px; color: var(--text-mute); font-weight: 600; text-decoration: none; transition: color .15s; }
+        .hero-tab:hover { color: var(--text); }
+        .hero-tab.active { color: var(--gold-soft); box-shadow: inset 0 -2px 0 var(--gold); border-radius: 0; }
+
+        /* ---------- Komponen lain (dipakai view lama) ---------- */
+        .list-group-item { background: rgba(255,255,255,.04); border-color: var(--line); color: var(--text); }
+        table.table-pilem { color: var(--text); --bs-table-bg: transparent; --bs-table-color: var(--text); }
+        table.table-pilem th { color: var(--text-mute); font-size: .68rem; font-weight: 700; letter-spacing: .08em; text-transform: uppercase; border-color: var(--line); padding: 1rem; }
+        table.table-pilem td { border-color: var(--line); vertical-align: middle; padding: 1.1rem 1rem; }
+        .provider-logo { width: 34px; height: 34px; border-radius: 8px; }
+        .chat-bubble-user { background: rgba(247,185,40,.12); border: 1px solid rgba(247,185,40,.3); border-radius: 14px 14px 4px 14px; padding: .6rem .9rem; max-width: 80%; font-size: .88rem; }
+        .chat-bubble-bot { background: rgba(255,255,255,.05); border: 1px solid var(--line); border-radius: 14px 14px 14px 4px; padding: .6rem .9rem; max-width: 85%; font-size: .88rem; line-height: 1.55; }
         .quick-prompt {
-            display: block; width: 100%; text-align: left; background: rgba(255,255,255,0.06);
-            border: 1px solid rgba(255,255,255,0.12); color: var(--white); border-radius: 10px;
-            padding: .6rem .8rem; margin-bottom: .5rem; font-size: .85rem; cursor: pointer;
+            display: flex; justify-content: space-between; align-items: center; gap: .75rem; width: 100%; text-align: left;
+            background: rgba(255,255,255,.03); border: 1px solid var(--line); color: var(--text-dim);
+            border-radius: 12px; padding: .8rem 1rem; margin-bottom: .6rem; font-size: .84rem; cursor: pointer; transition: .15s;
         }
-        .quick-prompt:hover { background: rgba(255,255,255,0.14); }
-        footer.pilem-footer { background: rgba(0,0,0,0.5); border-top: 1px solid rgba(255,255,255,0.1); }
+        .quick-prompt:hover { background: rgba(39,196,232,.08); border-color: rgba(39,196,232,.4); color: var(--text); }
+        .filter-badge {
+            display: inline-flex; align-items: center; gap: .4rem; background: rgba(255,255,255,.04);
+            border: 1px solid var(--line); border-radius: 999px; padding: .32rem .85rem; font-size: .78rem;
+            color: var(--text-dim); cursor: pointer; transition: .15s; text-decoration: none;
+        }
+        .filter-badge:hover, .filter-badge.active { background: rgba(39,196,232,.14); border-color: var(--cyan); color: var(--text); }
+
+        /* ---------- Footer ---------- */
+        footer.pilem-footer { border-top: 1px solid var(--line); background: rgba(0,0,0,.25); }
+        footer.pilem-footer a { text-decoration: none; color: var(--text-dim); transition: color .15s; }
+        footer.pilem-footer a:hover { color: var(--text); }
+
+        @media (max-width: 991.98px) {
+            .nav-search input { width: 100%; }
+        }
+        @media (prefers-reduced-motion: reduce) {
+            html { scroll-behavior: auto; }
+            *, *::before, *::after { transition: none !important; animation: none !important; }
+        }
     </style>
     @stack('meta')
     @stack('styles')
 </head>
 <body>
 
-<nav class="navbar navbar-pilem py-3">
+<nav class="navbar-pilem py-3">
     <div class="container d-flex align-items-center justify-content-between flex-wrap gap-3">
-        <a href="{{ route('home') }}" class="brand text-decoration-none text-white">pilem<span class="dot">.</span></a>
+        <a href="{{ route('home') }}" class="brand">pilem<span class="dot">.</span></a>
 
-        <div class="d-flex gap-2 flex-wrap">
-            <a href="{{ route('home') }}" class="nav-pill {{ request()->routeIs('home') && !request()->anyFilled(['q','genre','tahun','negara']) ? 'active' : '' }} text-decoration-none">Now Playing</a>
-            <a href="{{ route('film.statistik') }}" class="nav-pill {{ request()->routeIs('film.statistik') ? 'active' : '' }} text-decoration-none">Statistik</a>
-            <a href="{{ route('home') }}#ask-pilmy" class="nav-pill accent text-decoration-none">Ask Pilmy</a>
+        <div class="nav-group">
+            <a href="{{ route('home') }}" class="nav-pill {{ request()->routeIs('home') && !request()->anyFilled(['q','genre','tahun','negara']) ? 'active' : '' }}">Now Playing</a>
+            <a href="{{ route('film.statistik') }}" class="nav-pill {{ request()->routeIs('film.statistik') ? 'active' : '' }}">Statistik</a>
+            <a href="{{ route('home') }}#ask-pilmy" class="nav-pill accent">Ask Pilmy</a>
         </div>
 
-        <form action="{{ route('home') }}" method="GET" class="d-none d-md-block">
-            <input type="text" name="q" value="{{ request('q') }}" class="form-control form-control-sm search-input" style="width:260px;"
-                   placeholder="Cari film, sutradara, OST...">
+        <form action="{{ route('home') }}" method="GET" class="nav-search" role="search">
+            <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" aria-hidden="true"><circle cx="11" cy="11" r="7"/><path d="m20 20-3.5-3.5"/></svg>
+            <input type="text" name="q" value="{{ request('q') }}" class="form-control form-control-sm search-input"
+                   placeholder="Cari film, sutradara, aktor..." aria-label="Cari film">
         </form>
     </div>
 </nav>
@@ -128,29 +218,36 @@
 
 <footer class="pilem-footer py-5 mt-4">
     <div class="container d-flex flex-wrap justify-content-between gap-4">
-        <div style="max-width: 320px;">
-            <div class="brand mb-2">pilem<span class="dot" style="color: var(--sun);">.</span></div>
-            <p class="text-white-50 small">"Pile of Movies" &mdash; katalog film Disney, Marvel, dan Pixar, lengkap dengan trailer, soundtrack, dan asisten AI.</p>
+        <div style="max-width: 340px;">
+            <div class="brand mb-2" style="font-weight:800; font-size:1.6rem; letter-spacing:-.04em;">pilem<span style="color: var(--gold);">.</span></div>
+            <p class="text-dim small mb-0">Katalog film Disney, Marvel, dan Pixar yang dibangun di atas data graph (RDF), lengkap dengan trailer, soundtrack, dan asisten AI.</p>
         </div>
-        <div>
-            <div class="fw-bold small mb-2 text-sand">Navigasi</div>
-            <div class="d-flex flex-column gap-1 small text-white-50">
-                <a href="{{ route('home') }}" class="text-decoration-none text-white-50">Now Playing</a>
-                <a href="{{ route('film.search') }}" class="text-decoration-none text-white-50">Cari Film</a>
-                <a href="{{ route('home') }}#ask-pilmy" class="text-decoration-none text-white-50">Ask Pilmy</a>
-                <a href="{{ route('film.statistik') }}" class="text-decoration-none text-white-50">Statistik</a>
+        <div class="d-flex gap-5 flex-wrap">
+            <div>
+                <div class="fw-bold small mb-2">Navigasi</div>
+                <div class="d-flex flex-column gap-1 small">
+                    <a href="{{ route('home') }}">Now Playing</a>
+                    <a href="{{ route('film.search') }}">Cari Film</a>
+                    <a href="{{ route('home') }}#ask-pilmy">Ask Pilmy</a>
+                    <a href="{{ route('film.statistik') }}">Statistik</a>
+                </div>
             </div>
-        </div>
-        <div>
-            <div class="fw-bold small mb-2 text-sand">Sumber Data</div>
-            <div class="d-flex flex-column gap-1 small text-white-50">
-                <span>TMDB, DBpedia, Wikidata</span>
-                <span>iTunes, JustWatch (via TMDB)</span>
+            <div>
+                <div class="fw-bold small mb-2">Sumber Data</div>
+                <div class="d-flex flex-column gap-1 small text-dim">
+                    <span>CineGraph (film.ttl + ontology)</span>
+                    <span>TMDB, DBpedia, Wikidata</span>
+                    <span>iTunes, JustWatch via TMDB</span>
+                </div>
             </div>
         </div>
     </div>
-    <div class="text-center text-white-50 small mt-4">&copy; {{ date('Y') }} pilem. Tugas Besar Web Semantik &mdash; bukan produk komersial.</div>
+    <div class="container text-mute small mt-4 pt-3" style="border-top:1px solid var(--line); color: var(--text-mute);">
+        &copy; {{ date('Y') }} pilem. Tugas Besar Web Semantik &mdash; bukan produk komersial.
+    </div>
 </footer>
+
+@stack('player')
 
 @unless ($hideChatWidget ?? false)
     @include('partials.chatbot-widget')

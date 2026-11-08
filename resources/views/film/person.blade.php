@@ -30,14 +30,14 @@
         padding: .25rem .7rem; border-radius: 999px; text-transform: uppercase;
         letter-spacing: .04em;
     }
-    .role-pill.sutradara { background: var(--sky); color: #fff; }
+    .role-pill.sutradara { background: rgba(39,196,232,.18); border: 1px solid rgba(39,196,232,.5); color: var(--text); }
     .role-pill.aktor     { background: rgba(255,255,255,0.15); color: #fff; }
     .filmografi-tabs .tab-btn {
         background: rgba(255,255,255,0.07); border: 1px solid rgba(255,255,255,0.12);
         color: rgba(255,255,255,0.6); border-radius: 8px; padding: .35rem .8rem;
         font-size: .82rem; font-weight: 600; cursor: pointer; transition: .15s;
     }
-    .filmografi-tabs .tab-btn.active { background: var(--sky); border-color: var(--sky); color: #fff; }
+    .filmografi-tabs .tab-btn.active { background: rgba(39,196,232,.16); border-color: var(--cyan); color: var(--text); }
 </style>
 @endpush
 
@@ -98,9 +98,9 @@
                 <div class="col filmografi-item" data-peran="{{ $filmItem['peran'] }}">
                     <a href="{{ route('film.detail', $filmItem['id']) }}" class="text-decoration-none text-white">
                         <div class="card-pilem h-100">
-                            @if ($filmItem['poster'])
+                            @if (pilemPoster($filmItem['id'], $filmItem['poster']))
                                 <div class="position-relative">
-                                    <img src="{{ $filmItem['poster'] }}" class="poster" alt="{{ $filmItem['nama'] }}">
+                                    <img src="{{ pilemPoster($filmItem['id'], $filmItem['poster']) }}" class="poster" alt="{{ $filmItem['nama'] }}">
                                     <span class="position-absolute bottom-0 start-0 m-1 role-pill {{ strtolower($filmItem['peran']) }}">
                                         {{ $filmItem['peran'] === 'Sutradara' ? '🎬' : '🎭' }}
                                     </span>

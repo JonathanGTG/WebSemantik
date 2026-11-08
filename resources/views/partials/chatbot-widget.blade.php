@@ -10,8 +10,8 @@
 </button>
 
 <div id="chatbot-panel" class="card shadow"
-     style="display:none; flex-direction:column; position:fixed; bottom:85px; right:20px; width:340px; max-height:500px; z-index:1050; background:#12224d; border-color: rgba(255,255,255,0.15);">
-    <div class="card-header text-white d-flex justify-content-between align-items-center py-2" style="background: var(--ocean);">
+     style="display:none; flex-direction:column; position:fixed; bottom:85px; right:20px; width:340px; max-height:500px; z-index:1050; background:var(--bg-raised); border-color: var(--line-strong); border-radius:18px; overflow:hidden;">
+    <div class="card-header text-white d-flex justify-content-between align-items-center py-2" style="background: var(--surface-2); border-color: var(--line);">
         <span>🎬 Ask Pilmy</span>
         <button id="chatbot-close" type="button" class="btn-close btn-close-white btn-sm" aria-label="Tutup"></button>
     </div>
