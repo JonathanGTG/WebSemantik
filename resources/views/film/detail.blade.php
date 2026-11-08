@@ -10,8 +10,8 @@
 @push('meta')
     <meta property="og:title" content="{{ $film['nama'] }}">
     <meta property="og:type" content="video.movie">
-    @if ($film['poster'])
-        <meta property="og:image" content="{{ $film['poster'] }}">
+    @if (pilemPoster($film['id'], $film['poster']))
+        <meta property="og:image" content="{{ pilemPoster($film['id'], $film['poster']) }}">
     @endif
     <meta property="og:description" content="{{ Str::limit($film['sinopsis'] ?? ('Detail film ' . $film['nama']), 200) }}">
     <meta property="og:url" content="{{ url()->current() }}">
@@ -22,10 +22,10 @@
     .detail-hero { padding: 2rem 0 1.5rem; }
     .genre-tag {
         display: inline-block; font-size: .72rem; font-weight: 700;
-        padding: .25rem .65rem; border-radius: 6px; background: var(--sky);
-        color: #fff; text-decoration: none; transition: background .15s;
+        padding: .25rem .65rem; border-radius: 6px; background: rgba(39,196,232,.14); border: 1px solid rgba(39,196,232,.45);
+        color: var(--text); text-decoration: none; transition: background .15s;
     }
-    .genre-tag:hover { background: var(--sun); color: #000; }
+    .genre-tag:hover { background: var(--gold); border-color: var(--gold); color: #1a1200; }
     .meta-row { display: flex; flex-wrap: wrap; gap: .3rem .8rem; font-size: .9rem; color: rgba(255,255,255,0.6); margin-bottom: 1rem; }
     .meta-row strong { color: #fff; }
     .meta-row .sep { color: rgba(255,255,255,0.2); }
@@ -47,7 +47,7 @@
         font-size: .6rem; padding: .15rem .5rem; border-radius: 999px;
         background: rgba(255,255,255,0.12); font-weight: 600;
     }
-    .cast-role-badge.sutradara { background: var(--sky); }
+    .cast-role-badge.sutradara { background: rgba(39,196,232,.18); color: var(--text); }
     .ost-track {
         background: rgba(255,255,255,0.05); border: 1px solid rgba(255,255,255,0.1);
         border-radius: 10px; padding: .75rem; transition: border-color .15s;
@@ -85,9 +85,9 @@
 
         {{-- Poster --}}
         <div class="col-md-3 col-lg-2">
-            @if ($film['poster'])
+            @if (pilemPoster($film['id'], $film['poster']))
                 <div class="position-relative">
-                    <img src="{{ $film['poster'] }}" property="image"
+                    <img src="{{ pilemPoster($film['id'], $film['poster']) }}" property="image"
                          class="img-fluid rounded-3 shadow w-100" alt="{{ $film['nama'] }}"
                          style="aspect-ratio:2/3; object-fit:cover;">
                     @if (!empty($film['rating']))
@@ -347,8 +347,8 @@
                 <div class="col sejenis-card">
                     <a href="{{ route('film.detail', $mirip['id']) }}" class="text-decoration-none text-white">
                         <div class="card-pilem h-100">
-                            @if ($mirip['poster'])
-                                <img src="{{ $mirip['poster'] }}" class="poster" alt="{{ $mirip['nama'] }}">
+                            @if (pilemPoster($mirip['id'], $mirip['poster']))
+                                <img src="{{ pilemPoster($mirip['id'], $mirip['poster']) }}" class="poster" alt="{{ $mirip['nama'] }}">
                             @else
                                 <div class="d-flex align-items-center justify-content-center"
                                      style="aspect-ratio:2/3; background: rgba(255,255,255,0.05);">
