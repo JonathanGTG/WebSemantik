@@ -35,8 +35,11 @@ class FilmController extends Controller
     public function search(Request $request)
     {
         $keyword = trim($request->input('q', ''));
+        $huruf = strtoupper(trim($request->input('huruf', '')));
         $genre = trim($request->input('genre', ''));
         $tahun = trim($request->input('tahun', ''));
+        $rated = trim($request->input('rated', ''));
+        $sort = trim($request->input('sort', ''));
         $negara = trim($request->input('negara', ''));
 
         // Validasi: kalau tidak ada satupun kriteria diisi, JANGAN kirim ke
@@ -44,12 +47,15 @@ class FilmController extends Controller
         // tidak sengaja) -- lihat PRD §9 edge case. Browsing tanpa keyword
         // sudah difasilitasi halaman utama (/), jadi /search murni untuk
         // pencarian aktif.
-        if ($keyword === '' && $genre === '' && $tahun === '' && $negara === '') {
+        if ($keyword === '' && $huruf === '' && $genre === '' && $tahun === '' && $rated === '' && $sort === '' && $negara === '') {
             return view('film.index', [
                 'films' => [],
                 'keyword' => $keyword,
+                'huruf' => $huruf,
                 'genre' => $genre,
                 'tahun' => $tahun,
+                'rated' => $rated,
+                'sort' => $sort,
                 'negara' => $negara,
                 'belumMencari' => true,
             ]);
@@ -60,11 +66,21 @@ class FilmController extends Controller
         if ($keyword !== '') {
             $filters = array_merge($filters, $this->buildKeywordFilter($keyword));
         }
+        if ($huruf !== '') {
+            if ($huruf === '#') {
+                $filters[] = 'FILTER(!REGEX(?nama, "^[A-Za-z]"))';
+            } else {
+                $filters[] = 'FILTER(STRSTARTS(UCASE(?nama), "'.$this->escape($huruf).'"))';
+            }
+        }
         if ($genre !== '') {
             $filters[] = 'FILTER(CONTAINS(LCASE(?genreLabel), LCASE("'.$this->escape($genre).'")))';
         }
         if ($tahun !== '') {
             $filters[] = 'FILTER(YEAR(?tahun) = '.intval($tahun).')';
+        }
+        if ($rated !== '') {
+            $filters[] = 'FILTER(?ratedVal = "'.$this->escape($rated).'")';
         }
         if ($negara !== '') {
             $filters[] = 'FILTER(CONTAINS(LCASE(?negaraLabel), LCASE("'.$this->escape($negara).'")))';
@@ -72,17 +88,28 @@ class FilmController extends Controller
 
         $filterClause = implode("\n                ", $filters);
 
+        $orderClause = match ($sort) {
+            'title_desc' => 'ORDER BY DESC(?nama)',
+            'year_desc' => 'ORDER BY DESC(?tahun) ?nama',
+            'year_asc' => 'ORDER BY ASC(?tahun) ?nama',
+            'rating_desc' => 'ORDER BY DESC(?ratingVal) ?nama',
+            default => 'ORDER BY ?nama',
+        };
+
         $query = <<<SPARQL
             PREFIX schema: <https://schema.org/>
             PREFIX rdfs: <http://www.w3.org/2000/01/rdf-schema#>
             PREFIX film: <http://pilem.org/cinegraph/ontology#>
-            SELECT ?film ?nama ?tahun ?tmdbId
+            SELECT ?film ?nama ?tahun ?tmdbId (SAMPLE(?posterRdf) AS ?posterRdf) (SAMPLE(?ratingVal) AS ?rating) (SAMPLE(?ratedVal) AS ?rated)
                    (GROUP_CONCAT(DISTINCT ?genreLabel; separator=", ") AS ?genres)
                    (GROUP_CONCAT(DISTINCT ?negaraLabel; separator=", ") AS ?negaraAsal) WHERE {
                 ?film a schema:Movie ;
                       schema:name ?nama ;
                       schema:datePublished ?tahun .
+                OPTIONAL { ?film schema:image ?posterRdf . }
                 OPTIONAL { ?film film:tmdbId ?tmdbId . }
+                OPTIONAL { ?film film:tmdbRating ?ratingVal . }
+                OPTIONAL { ?film film:rated ?ratedVal . }
                 OPTIONAL { ?film schema:genre ?genreRes . ?genreRes rdfs:label ?genreLabel . }
                 OPTIONAL { ?film schema:countryOfOrigin ?negaraRes . ?negaraRes schema:name ?negaraLabel . }
                 OPTIONAL { ?film schema:director ?sutradaraRes . ?sutradaraRes schema:name ?sutradaraNama . }
@@ -91,7 +118,7 @@ class FilmController extends Controller
                 $filterClause
             }
             GROUP BY ?film ?nama ?tahun ?tmdbId
-            ORDER BY ?nama
+            $orderClause
             LIMIT 50
         SPARQL;
 
@@ -108,16 +135,20 @@ class FilmController extends Controller
                     'id' => $filmId,
                     'nama' => (string) $row->nama,
                     'tahun' => isset($row->tahun) ? (string) $row->tahun : null,
+                    'rating' => isset($row->rating) ? (float) (string) $row->rating : null,
+                    'rated' => isset($row->rated) ? (string) $row->rated : null,
                     'genre' => isset($row->genres) && (string) $row->genres !== '' ? (string) $row->genres : null,
                     'negara' => isset($row->negaraAsal) && (string) $row->negaraAsal !== '' ? (string) $row->negaraAsal : null,
                     'poster' => null,
+                    'posterRdf' => isset($row->posterRdf) ? (string) $row->posterRdf : null,
                 ];
             }
 
-            // Ambil poster dari database (cepat & hemat resource)
+            // Ambil poster dari database (cepat & hemat resource), fallback ke RDF poster
             $posters = MoviePoster::getPosters($filmIds);
             foreach ($films as &$f) {
-                $f['poster'] = $posters[$f['id']] ?? null;
+                $f['poster'] = $posters[$f['id']] ?? $f['posterRdf'] ?? null;
+                unset($f['posterRdf']);
             }
             unset($f);
         } catch (EasyRdfException $e) {
@@ -129,8 +160,11 @@ class FilmController extends Controller
         return view('film.index', [
             'films' => $films,
             'keyword' => $keyword,
+            'huruf' => $huruf,
             'genre' => $genre,
             'tahun' => $tahun,
+            'rated' => $rated,
+            'sort' => $sort,
             'negara' => $negara,
         ]);
     }
@@ -163,20 +197,30 @@ class FilmController extends Controller
         $studio = trim($request->input('studio', ''));
         $featuredId = trim($request->input('featured', ''));
 
-        // ── Mode Pencarian ────────────────────────────────────────────────
-        // Kalau ada salah satu parameter search (?q, ?genre, ?tahun, ?negara),
+        // ── Mode Pencarian & Filter ───────────────────────────────────────
+        // Kalau ada salah satu parameter filter (?q, ?huruf, ?genre, ?tahun, ?rated, ?sort, ?negara),
         // home berfungsi sebagai halaman hasil pencarian (tidak tampil hero/featured).
         $keyword = trim($request->input('q', ''));
+        $huruf = strtoupper(trim($request->input('huruf', '')));
         $genre = trim($request->input('genre', ''));
         $tahun = trim($request->input('tahun', ''));
+        $rated = trim($request->input('rated', ''));
+        $sort = trim($request->input('sort', ''));
         $negara = trim($request->input('negara', ''));
 
-        $isSearchMode = ($keyword !== '' || $genre !== '' || $tahun !== '' || $negara !== '');
+        $isSearchMode = ($keyword !== '' || $huruf !== '' || $genre !== '' || $tahun !== '' || $rated !== '' || $sort !== '' || $negara !== '');
 
         if ($isSearchMode) {
             $filters = [];
             if ($keyword !== '') {
                 $filters = array_merge($filters, $this->buildKeywordFilter($keyword));
+            }
+            if ($huruf !== '') {
+                if ($huruf === '#') {
+                    $filters[] = 'FILTER(!REGEX(?nama, "^[A-Za-z]"))';
+                } else {
+                    $filters[] = 'FILTER(STRSTARTS(UCASE(?nama), "'.$this->escape($huruf).'"))';
+                }
             }
             if ($genre !== '') {
                 $filters[] = 'FILTER(CONTAINS(LCASE(?genreLabel), LCASE("'.$this->escape($genre).'")))';
@@ -184,23 +228,37 @@ class FilmController extends Controller
             if ($tahun !== '') {
                 $filters[] = 'FILTER(YEAR(?tahun) = '.intval($tahun).')';
             }
+            if ($rated !== '') {
+                $filters[] = 'FILTER(?ratedVal = "'.$this->escape($rated).'")';
+            }
             if ($negara !== '') {
                 $filters[] = 'FILTER(CONTAINS(LCASE(?negaraLabel), LCASE("'.$this->escape($negara).'")))';
             }
 
             $filterClause = implode("\n                ", $filters);
 
+            $orderClause = match ($sort) {
+                'title_desc' => 'ORDER BY DESC(?nama)',
+                'year_desc' => 'ORDER BY DESC(?tahun) ?nama',
+                'year_asc' => 'ORDER BY ASC(?tahun) ?nama',
+                'rating_desc' => 'ORDER BY DESC(?ratingVal) ?nama',
+                default => 'ORDER BY ?nama',
+            };
+
             $sparql = <<<SPARQL
                 PREFIX schema: <https://schema.org/>
                 PREFIX rdfs: <http://www.w3.org/2000/01/rdf-schema#>
                 PREFIX film: <http://pilem.org/cinegraph/ontology#>
-                SELECT ?film ?nama ?tahun ?tmdbId
+                SELECT ?film ?nama ?tahun ?tmdbId (SAMPLE(?posterRdf) AS ?posterRdf) (SAMPLE(?ratingVal) AS ?rating) (SAMPLE(?ratedVal) AS ?rated)
                        (GROUP_CONCAT(DISTINCT ?genreLabel; separator=", ") AS ?genres)
                        (GROUP_CONCAT(DISTINCT ?negaraLabel; separator=", ") AS ?negaraAsal) WHERE {
                     ?film a schema:Movie ;
                           schema:name ?nama ;
                           schema:datePublished ?tahun .
+                    OPTIONAL { ?film schema:image ?posterRdf . }
                     OPTIONAL { ?film film:tmdbId ?tmdbId . }
+                    OPTIONAL { ?film film:tmdbRating ?ratingVal . }
+                    OPTIONAL { ?film film:rated ?ratedVal . }
                     OPTIONAL { ?film schema:genre ?genreRes . ?genreRes rdfs:label ?genreLabel . }
                     OPTIONAL { ?film schema:countryOfOrigin ?negaraRes . ?negaraRes schema:name ?negaraLabel . }
                     OPTIONAL { ?film schema:director ?sutradaraRes . ?sutradaraRes schema:name ?sutradaraNama . }
@@ -209,7 +267,7 @@ class FilmController extends Controller
                     $filterClause
                 }
                 GROUP BY ?film ?nama ?tahun ?tmdbId
-                ORDER BY ?nama
+                $orderClause
                 LIMIT 50
             SPARQL;
 
@@ -225,15 +283,19 @@ class FilmController extends Controller
                         'id' => $filmId,
                         'nama' => (string) $row->nama,
                         'tahun' => isset($row->tahun) ? (string) $row->tahun : null,
+                        'rating' => isset($row->rating) ? (float) (string) $row->rating : null,
+                        'rated' => isset($row->rated) ? (string) $row->rated : null,
                         'genre' => isset($row->genres) && (string) $row->genres !== '' ? (string) $row->genres : null,
                         'negara' => isset($row->negaraAsal) && (string) $row->negaraAsal !== '' ? (string) $row->negaraAsal : null,
                         'poster' => null,
+                        'posterRdf' => isset($row->posterRdf) ? (string) $row->posterRdf : null,
                     ];
                 }
 
                 $posters = MoviePoster::getPosters($filmIds);
                 foreach ($films as &$f) {
-                    $f['poster'] = $posters[$f['id']] ?? null;
+                    $f['poster'] = $posters[$f['id']] ?? $f['posterRdf'] ?? null;
+                    unset($f['posterRdf']);
                 }
                 unset($f);
             } catch (EasyRdfException $e) {
@@ -246,9 +308,13 @@ class FilmController extends Controller
                 'isSearchMode' => true,
                 'films' => $films,
                 'keyword' => $keyword,
+                'huruf' => $huruf,
                 'genre' => $genre,
                 'tahun' => $tahun,
+                'rated' => $rated,
+                'sort' => $sort,
                 'negara' => $negara,
+                'category' => 'now_playing',
                 // Tetap kirim nilai default agar view tidak error
                 'nowPlaying' => [],
                 'featured' => null,
@@ -259,7 +325,8 @@ class FilmController extends Controller
         }
 
         // ── Mode Now Playing (default) ────────────────────────────────────
-        $nowPlaying = $this->fetchNowPlaying($studio !== '' ? $studio : null, 8);
+        $category = trim($request->input('category', 'now_playing'));
+        $nowPlaying = $this->fetchNowPlaying($studio !== '' ? $studio : null, 16, $category);
 
         $featuredCandidateId = $featuredId !== '' ? $featuredId : ($nowPlaying[0]['id'] ?? null);
 
@@ -276,6 +343,7 @@ class FilmController extends Controller
             'isSearchMode' => false,
             'nowPlaying' => $nowPlaying,
             'featured' => $featured,
+            'category' => $category,
             'studioAktif' => $studio,
             'streamingPreview' => $this->fetchStreamingPreview($nowPlaying),
             'studioTabs' => [
@@ -285,8 +353,11 @@ class FilmController extends Controller
                 'Walt Disney Pictures' => 'Walt Disney',
             ],
             'keyword' => '',
+            'huruf' => '',
             'genre' => '',
             'tahun' => '',
+            'rated' => '',
+            'sort' => '',
             'negara' => '',
         ]);
     }
@@ -314,12 +385,13 @@ class FilmController extends Controller
             PREFIX rdfs: <http://www.w3.org/2000/01/rdf-schema#>
             PREFIX owl: <http://www.w3.org/2002/07/owl#>
             PREFIX film: <http://pilem.org/cinegraph/ontology#>
-            SELECT ?nama ?tahun ?sutradara ?durasi ?sameAs ?tmdbId ?imdbId ?boxOffice ?rating ?deskripsi ?rated ?runtimeMinutes
+            SELECT ?nama ?tahun ?sutradara ?durasi ?sameAs ?tmdbId ?imdbId ?boxOffice ?rating ?deskripsi ?rated ?runtimeMinutes ?posterRdf
                    (GROUP_CONCAT(DISTINCT ?genreLabel; separator=", ") AS ?genres)
                    (GROUP_CONCAT(DISTINCT ?aktorNama; separator=", ") AS ?aktor)
                    (GROUP_CONCAT(DISTINCT ?negaraLabel; separator=", ") AS ?negaraAsal) WHERE {
                 <$filmUri> schema:name ?nama ;
                            schema:datePublished ?tahun .
+                OPTIONAL { <$filmUri> schema:image ?posterRdf . }
                 OPTIONAL { <$filmUri> schema:duration ?durasi . }
                 OPTIONAL { <$filmUri> owl:sameAs ?sameAs . }
                 OPTIONAL { <$filmUri> film:tmdbId ?tmdbId . }
@@ -334,7 +406,7 @@ class FilmController extends Controller
                 OPTIONAL { <$filmUri> schema:actor ?aktorRes . ?aktorRes schema:name ?aktorNama . }
                 OPTIONAL { <$filmUri> schema:countryOfOrigin ?negaraRes . ?negaraRes schema:name ?negaraLabel . }
             }
-            GROUP BY ?nama ?tahun ?sutradara ?durasi ?sameAs ?tmdbId ?imdbId ?boxOffice ?rating ?deskripsi ?rated ?runtimeMinutes
+            GROUP BY ?nama ?tahun ?sutradara ?durasi ?sameAs ?tmdbId ?imdbId ?boxOffice ?rating ?deskripsi ?rated ?runtimeMinutes ?posterRdf
         SPARQL;
 
         $result = $this->client->query($query);
@@ -345,7 +417,7 @@ class FilmController extends Controller
 
         $row = $result[0];
 
-        // Poster dan studio diambil dari database lokal agar reload cepat
+        // Poster dan studio diambil dari database lokal agar reload cepat, fallback ke RDF
         $posterRecord = MoviePoster::where('film_id', $id)
             ->when(isset($row->tmdbId), fn ($q) => $q->orWhere('tmdb_id', (int) (string) $row->tmdbId))
             ->first();
@@ -361,7 +433,7 @@ class FilmController extends Controller
             'studio' => $posterRecord?->studio,
             'aktor' => isset($row->aktor) && (string) $row->aktor !== '' ? (string) $row->aktor : null,
             'negara' => isset($row->negaraAsal) && (string) $row->negaraAsal !== '' ? (string) $row->negaraAsal : null,
-            'poster' => $posterRecord?->display_poster,
+            'poster' => $posterRecord?->display_poster ?? (isset($row->posterRdf) ? (string) $row->posterRdf : null),
             'durasi' => isset($row->durasi) ? (string) $row->durasi : null,
             'sameAs' => isset($row->sameAs) ? (string) $row->sameAs : null,
             'tmdbId' => isset($row->tmdbId) ? (string) $row->tmdbId : ($posterRecord?->tmdb_id ? (string) $posterRecord->tmdb_id : null),
@@ -406,10 +478,11 @@ class FilmController extends Controller
     /**
      * Daftar film untuk grid "Now Playing" di homepage, dengan filter
      * opsional per studio (Marvel Studios/Pixar/Walt Disney Pictures).
-     * Diurutkan dari rating TMDB tertinggi -- film pertama otomatis jadi
-     * "featured" di hero section (lihat home()).
+     * Secara default menyaring rilis terbaru (2024–2026) agar tidak menampilkan
+     * tahun-tahun lama yang sudah lewat, atau dapat menampilkan film terbaik sepanjang
+     * masa bila $category bernilai 'top_rated'.
      */
-    protected function fetchNowPlaying(?string $studio, int $limit = 8): array
+    protected function fetchNowPlaying(?string $studio, int $limit = 16, string $category = 'now_playing'): array
     {
         // Filter studio menggunakan pemetaan dataset di database
         $studioFilter = '';
@@ -421,11 +494,21 @@ class FilmController extends Controller
             }
         }
 
+        $yearFilter = ($category === 'top_rated')
+            ? ''
+            : 'FILTER(YEAR(?tahun) >= 2024 && YEAR(?tahun) <= 2026)';
+
+        $orderClause = ($category === 'top_rated')
+            ? 'ORDER BY DESC(?rating)'
+            : 'ORDER BY DESC(?rating) DESC(?tahun)';
+
         $query = <<<SPARQL
             PREFIX schema: <https://schema.org/>
             PREFIX rdfs: <http://www.w3.org/2000/01/rdf-schema#>
             PREFIX film: <http://pilem.org/cinegraph/ontology#>
-            SELECT ?film ?nama ?tahun ?rating ?durasi ?sutradara ?tmdbId
+            SELECT ?film ?nama ?tahun ?rating ?durasi ?tmdbId
+                   (SAMPLE(?posterRdf) AS ?posterRdf)
+                   (SAMPLE(?sutradaraNama) AS ?sutradara)
                    (GROUP_CONCAT(DISTINCT ?genreLabel; separator=", ") AS ?genres) WHERE {
                 ?film a schema:Movie ;
                       schema:name ?nama ;
@@ -433,12 +516,14 @@ class FilmController extends Controller
                 OPTIONAL { ?film film:tmdbRating ?rating . }
                 OPTIONAL { ?film film:tmdbId ?tmdbId . }
                 OPTIONAL { ?film schema:duration ?durasi . }
+                OPTIONAL { ?film schema:image ?posterRdf . }
                 OPTIONAL { ?film schema:genre ?genreRes . ?genreRes rdfs:label ?genreLabel . }
-                OPTIONAL { ?film schema:director ?sutradaraRes . ?sutradaraRes schema:name ?sutradara . }
+                OPTIONAL { ?film schema:director ?sutradaraRes . ?sutradaraRes schema:name ?sutradaraNama . }
                 $studioFilter
+                $yearFilter
             }
-            GROUP BY ?film ?nama ?tahun ?rating ?durasi ?sutradara ?tmdbId
-            ORDER BY DESC(?rating)
+            GROUP BY ?film ?nama ?tahun ?rating ?durasi ?tmdbId
+            $orderClause
             LIMIT $limit
         SPARQL;
 
@@ -456,6 +541,7 @@ class FilmController extends Controller
                     'nama' => (string) $row->nama,
                     'tahun' => isset($row->tahun) ? (string) $row->tahun : null,
                     'poster' => null,
+                    'posterRdf' => isset($row->posterRdf) ? (string) $row->posterRdf : null,
                     'rating' => isset($row->rating) ? (float) (string) $row->rating : null,
                     'tagline' => null,
                     'durasi' => isset($row->durasi) ? (string) $row->durasi : null,
@@ -467,12 +553,13 @@ class FilmController extends Controller
                 ];
             }
 
-            // Ambil poster dan studio dari database
+            // Ambil poster dan studio dari database, fallback ke poster RDF bila ada
             $posters = MoviePoster::getPosters($filmIds);
             $posterModels = MoviePoster::whereIn('film_id', $filmIds)->get()->keyBy('film_id');
             foreach ($films as &$f) {
-                $f['poster'] = $posters[$f['id']] ?? null;
+                $f['poster'] = $posters[$f['id']] ?? $f['posterRdf'] ?? null;
                 $f['studio'] = $posterModels[$f['id']]->studio ?? null;
+                unset($f['posterRdf']);
             }
             unset($f);
         } catch (EasyRdfException $e) {
@@ -546,7 +633,8 @@ class FilmController extends Controller
     {
         $query = <<<SPARQL
             PREFIX schema: <https://schema.org/>
-            SELECT DISTINCT ?person ?nama ?peran ?foto WHERE {
+            PREFIX film: <http://pilem.org/cinegraph/ontology#>
+            SELECT ?person ?nama ?peran (SAMPLE(?foto) AS ?foto) (GROUP_CONCAT(DISTINCT ?charName; separator=", ") AS ?karakter) WHERE {
                 {
                     <$filmUri> schema:director ?person .
                     BIND("Sutradara" AS ?peran)
@@ -555,10 +643,16 @@ class FilmController extends Controller
                 {
                     <$filmUri> schema:actor ?person .
                     BIND("Aktor" AS ?peran)
+                    OPTIONAL {
+                        <$filmUri> film:performanceRole ?role .
+                        ?role schema:actor ?person ;
+                              schema:characterName ?charName .
+                    }
                 }
                 ?person schema:name ?nama .
                 OPTIONAL { ?person schema:image ?foto . }
             }
+            GROUP BY ?person ?nama ?peran
             ORDER BY (?peran = "Aktor") ?nama
         SPARQL;
 
@@ -572,6 +666,7 @@ class FilmController extends Controller
                     'nama' => (string) $row->nama,
                     'peran' => (string) $row->peran,
                     'foto' => isset($row->foto) ? (string) $row->foto : null,
+                    'karakter' => isset($row->karakter) && (string) $row->karakter !== '' ? (string) $row->karakter : null,
                 ];
             }
         } catch (EasyRdfException $e) {
@@ -638,7 +733,8 @@ class FilmController extends Controller
     {
         $query = <<<SPARQL
             PREFIX schema: <https://schema.org/>
-            SELECT DISTINCT ?film ?namaFilm ?tahun ?peran WHERE {
+            PREFIX film: <http://pilem.org/cinegraph/ontology#>
+            SELECT ?film ?namaFilm ?tahun ?peran (SAMPLE(?posterRdf) AS ?posterRdf) (GROUP_CONCAT(DISTINCT ?charName; separator=", ") AS ?karakter) WHERE {
                 {
                     ?film schema:director <$personUri> .
                     BIND("Sutradara" AS ?peran)
@@ -647,10 +743,17 @@ class FilmController extends Controller
                 {
                     ?film schema:actor <$personUri> .
                     BIND("Aktor" AS ?peran)
+                    OPTIONAL {
+                        ?film film:performanceRole ?role .
+                        ?role schema:actor <$personUri> ;
+                              schema:characterName ?charName .
+                    }
                 }
                 ?film schema:name ?namaFilm .
                 OPTIONAL { ?film schema:datePublished ?tahun . }
+                OPTIONAL { ?film schema:image ?posterRdf . }
             }
+            GROUP BY ?film ?namaFilm ?tahun ?peran
             ORDER BY (?peran = "Aktor") ?namaFilm
         SPARQL;
 
@@ -667,13 +770,16 @@ class FilmController extends Controller
                     'nama' => (string) $row->namaFilm,
                     'tahun' => isset($row->tahun) ? (string) $row->tahun : null,
                     'poster' => null,
+                    'posterRdf' => isset($row->posterRdf) ? (string) $row->posterRdf : null,
                     'peran' => (string) $row->peran,
+                    'karakter' => isset($row->karakter) && (string) $row->karakter !== '' ? (string) $row->karakter : null,
                 ];
             }
 
             $posters = MoviePoster::getPosters($filmIds);
             foreach ($filmografi as &$item) {
-                $item['poster'] = $posters[$item['id']] ?? null;
+                $item['poster'] = $posters[$item['id']] ?? $item['posterRdf'] ?? null;
+                unset($item['posterRdf']);
             }
             unset($item);
         } catch (EasyRdfException $e) {

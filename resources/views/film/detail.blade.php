@@ -32,22 +32,25 @@
     .section-label { font-size: .7rem; font-weight: 700; text-transform: uppercase; letter-spacing: .06em; color: var(--sand); margin-bottom: .75rem; }
     .cast-card {
         text-align: center; text-decoration: none; color: inherit;
-        display: flex; flex-direction: column; align-items: center; gap: .4rem;
+        display: flex; flex-direction: column; align-items: center; gap: .35rem;
+        width: 105px;
     }
     .cast-card img, .cast-card .cast-placeholder {
         width: 72px; height: 72px; border-radius: 50%; object-fit: cover;
-        border: 2px solid transparent; transition: border-color .15s;
+        border: 2px solid transparent; transition: border-color .15s, transform .15s;
     }
     .cast-card .cast-placeholder {
         background: rgba(255,255,255,0.08); display: flex; align-items: center; justify-content: center; font-size: 1.5rem;
     }
-    .cast-card:hover img, .cast-card:hover .cast-placeholder { border-color: var(--sky); }
-    .cast-name { font-size: .7rem; line-height: 1.2; }
+    .cast-card:hover img, .cast-card:hover .cast-placeholder { border-color: var(--cyan); transform: scale(1.05); }
+    .cast-name { font-size: .78rem; font-weight: 700; line-height: 1.25; word-break: break-word; }
     .cast-role-badge {
-        font-size: .6rem; padding: .15rem .5rem; border-radius: 999px;
-        background: rgba(255,255,255,0.12); font-weight: 600;
+        font-size: .62rem; padding: .15rem .5rem; border-radius: 999px;
+        background: rgba(255,255,255,0.12); font-weight: 600; max-width: 100%;
+        overflow: hidden; text-overflow: ellipsis; white-space: nowrap;
     }
-    .cast-role-badge.sutradara { background: rgba(39,196,232,.18); color: var(--text); }
+    .cast-role-badge.sutradara { background: rgba(39,196,232,.18); color: var(--cyan); border: 1px solid rgba(39,196,232,.35); }
+    .cast-role-badge.pemeran { background: rgba(247,185,40,.15); color: var(--gold-soft); border: 1px solid rgba(247,185,40,.35); }
     .ost-track {
         background: rgba(255,255,255,0.05); border: 1px solid rgba(255,255,255,0.1);
         border-radius: 10px; padding: .75rem; transition: border-color .15s;
@@ -215,25 +218,64 @@
         </p>
     @endif
 
-    {{-- ======================= CAST & CREW ======================= --}}
-    @if (!empty($film['castCrew']))
+    {{-- ======================= SUTRADARA & PEMERAN ======================= --}}
+    @php
+        $sutradaraList = collect($film['castCrew'] ?? [])->where('peran', 'Sutradara');
+        $aktorList = collect($film['castCrew'] ?? [])->where('peran', 'Aktor');
+    @endphp
+
+    @if ($sutradaraList->isNotEmpty() || $aktorList->isNotEmpty())
         <hr class="pilem-hr my-4">
-        <div class="section-label">🎭 Pemeran &amp; Sutradara</div>
-        <div class="d-flex flex-wrap gap-3">
-            @foreach ($film['castCrew'] as $orang)
-                <a href="{{ route('person.detail', $orang['id']) }}"
-                   class="cast-card"
-                   property="{{ $orang['peran'] === 'Sutradara' ? 'director' : 'actor' }}">
-                    @if ($orang['foto'])
-                        <img src="{{ $orang['foto'] }}" alt="{{ $orang['nama'] }}">
-                    @else
-                        <div class="cast-placeholder">{{ $orang['peran'] === 'Sutradara' ? '🎬' : '🎭' }}</div>
-                    @endif
-                    <div class="cast-name">{{ Str::limit($orang['nama'], 16) }}</div>
-                    <span class="cast-role-badge {{ strtolower($orang['peran']) }}">{{ $orang['peran'] }}</span>
-                </a>
-            @endforeach
-        </div>
+
+        {{-- Baris 1: Sutradara --}}
+        @if ($sutradaraList->isNotEmpty())
+            <div class="mb-4">
+                <div class="section-label">🎬 Sutradara</div>
+                <div class="d-flex flex-wrap gap-3">
+                    @foreach ($sutradaraList as $s)
+                        <a href="{{ route('person.detail', $s['id']) }}"
+                           class="cast-card"
+                           property="director">
+                            @if ($s['foto'])
+                                <img src="{{ $s['foto'] }}" alt="{{ $s['nama'] }}">
+                            @else
+                                <div class="cast-placeholder">🎬</div>
+                            @endif
+                            <div class="cast-name">{{ Str::limit($s['nama'], 22) }}</div>
+                            <span class="cast-role-badge sutradara">Sutradara</span>
+                        </a>
+                    @endforeach
+                </div>
+            </div>
+        @endif
+
+        {{-- Baris 2: Pemeran & Karakter --}}
+        @if ($aktorList->isNotEmpty())
+            <div>
+                <div class="section-label">🎭 Pemeran &amp; Karakter</div>
+                <div class="d-flex flex-wrap gap-3">
+                    @foreach ($aktorList as $a)
+                        <a href="{{ route('person.detail', $a['id']) }}"
+                           class="cast-card"
+                           property="actor">
+                            @if ($a['foto'])
+                                <img src="{{ $a['foto'] }}" alt="{{ $a['nama'] }}">
+                            @else
+                                <div class="cast-placeholder">🎭</div>
+                            @endif
+                            <div class="cast-name">{{ Str::limit($a['nama'], 22) }}</div>
+                            @if (!empty($a['karakter']))
+                                <span class="cast-role-badge pemeran" title="{{ $a['nama'] }} sebagai {{ $a['karakter'] }}">
+                                    sebagai {{ Str::limit($a['karakter'], 20) }}
+                                </span>
+                            @else
+                                <span class="cast-role-badge pemeran">Pemeran</span>
+                            @endif
+                        </a>
+                    @endforeach
+                </div>
+            </div>
+        @endif
     @endif
 
     {{-- ======================= TRAILER ======================= --}}

@@ -37,39 +37,60 @@
     <p class="text-white-50 small mb-4">Pencarian via SPARQL query langsung ke dataset RDF — genre, tahun, dan negara sebagai resource graph.</p>
 
     <form method="GET" action="{{ route('film.search') }}" id="search-form">
-        <div class="row g-2 mb-3">
-            <div class="col-12 col-md-6">
+        <input type="hidden" name="huruf" id="search-huruf" value="{{ $huruf ?? '' }}">
+        <div class="row g-2 mb-2">
+            <div class="col-12 col-md-4">
                 <input type="text" name="q" id="search-q"
                        class="form-control form-control-lg search-input"
-                       placeholder="Judul film, sutradara..."
+                       placeholder="Judul film, sutradara, aktor..."
                        value="{{ $keyword }}" autocomplete="off">
             </div>
             <div class="col-6 col-md-2">
-                <input type="text" name="genre" class="form-control search-input"
-                       placeholder="Genre" value="{{ $genre }}">
+                <select name="genre" class="form-select form-select-lg search-input" style="font-size: .88rem; height: calc(1.5em + 1rem + 2px);">
+                    <option value="">Semua Genre</option>
+                    @foreach (['Action', 'Adventure', 'Animation', 'Comedy', 'Crime', 'Documentary', 'Drama', 'Family', 'Fantasy', 'History', 'Horror', 'Music', 'Mystery', 'Romance', 'Science Fiction', 'Thriller', 'TV Movie', 'Western'] as $g)
+                        <option value="{{ $g }}" {{ strtolower($genre) === strtolower($g) ? 'selected' : '' }}>{{ $g }}</option>
+                    @endforeach
+                </select>
             </div>
             <div class="col-6 col-md-2">
-                <input type="number" name="tahun" class="form-control search-input"
-                       placeholder="Tahun" value="{{ $tahun }}" min="1900" max="{{ date('Y') }}">
+                <input type="number" name="tahun" class="form-control form-control-lg search-input"
+                       placeholder="Tahun" value="{{ $tahun }}" min="1900" max="{{ date('Y') }}" style="font-size: .88rem;">
             </div>
-            <div class="col-6 col-md-1">
-                <input type="text" name="negara" class="form-control search-input"
-                       placeholder="Negara" value="{{ $negara }}">
+            <div class="col-6 col-md-2">
+                <select name="rated" class="form-select form-select-lg search-input" style="font-size: .88rem; height: calc(1.5em + 1rem + 2px);">
+                    <option value="">Rating Usia</option>
+                    <option value="G" {{ ($rated ?? '') === 'G' ? 'selected' : '' }}>G</option>
+                    <option value="PG" {{ ($rated ?? '') === 'PG' ? 'selected' : '' }}>PG</option>
+                    <option value="PG-13" {{ ($rated ?? '') === 'PG-13' ? 'selected' : '' }}>PG-13</option>
+                    <option value="R" {{ ($rated ?? '') === 'R' ? 'selected' : '' }}>R</option>
+                    <option value="NR" {{ ($rated ?? '') === 'NR' ? 'selected' : '' }}>NR</option>
+                </select>
             </div>
-            <div class="col-6 col-md-1">
-                <button type="submit" class="btn btn-sun w-100 h-100">Cari</button>
+            <div class="col-6 col-md-2">
+                <select name="sort" class="form-select form-select-lg search-input" style="font-size: .88rem; height: calc(1.5em + 1rem + 2px);">
+                    <option value="title_asc" {{ ($sort ?? '') === 'title_asc' || empty($sort) ? 'selected' : '' }}>Judul (A-Z)</option>
+                    <option value="title_desc" {{ ($sort ?? '') === 'title_desc' ? 'selected' : '' }}>Judul (Z-A)</option>
+                    <option value="year_desc" {{ ($sort ?? '') === 'year_desc' ? 'selected' : '' }}>Tahun (Terbaru)</option>
+                    <option value="year_asc" {{ ($sort ?? '') === 'year_asc' ? 'selected' : '' }}>Tahun (Terlama)</option>
+                    <option value="rating_desc" {{ ($sort ?? '') === 'rating_desc' ? 'selected' : '' }}>Rating Tertinggi</option>
+                </select>
             </div>
         </div>
 
-        {{-- Quick genre filters --}}
-        <div class="d-flex flex-wrap gap-2 mb-2">
-            @foreach (['Action', 'Adventure', 'Animation', 'Comedy', 'Drama', 'Science Fiction', 'Family'] as $g)
-                <button type="button" class="filter-badge {{ strtolower($genre) === strtolower($g) ? 'active' : '' }}"
-                        onclick="setGenre('{{ $g }}')">{{ $g }}</button>
-            @endforeach
-            @if ($genre)
-                <a href="{{ route('film.search') }}" class="filter-badge" style="color: rgba(255,100,100,0.8); border-color: rgba(255,100,100,0.3);">✕ Reset filter</a>
-            @endif
+        <div class="d-flex justify-content-between align-items-center flex-wrap gap-2 mb-3">
+            {{-- Quick genre filters --}}
+            <div class="d-flex flex-wrap gap-2">
+                @foreach (['Action', 'Adventure', 'Animation', 'Comedy', 'Drama', 'Science Fiction', 'Family'] as $g)
+                    <button type="button" class="filter-badge {{ strtolower($genre) === strtolower($g) ? 'active' : '' }}"
+                            onclick="setGenre('{{ $g }}')">{{ $g }}</button>
+                @endforeach
+                @if ($genre || $tahun || !empty($rated) || !empty($huruf) || $keyword)
+                    <a href="{{ route('film.search') }}" class="filter-badge" style="color: rgba(255,100,100,0.8); border-color: rgba(255,100,100,0.3);">✕ Reset filter</a>
+                @endif
+            </div>
+
+            <button type="submit" class="btn btn-sun px-4 py-2" style="font-weight: 700;">Cari Film</button>
         </div>
     </form>
 </div>
@@ -104,8 +125,10 @@
         <span class="result-count">
             <strong class="text-white">{{ count($films) }}</strong> film ditemukan
             @if ($keyword) — "<em>{{ $keyword }}</em>" @endif
+            @if (!empty($huruf)) · awalan: <em>{{ $huruf }}</em> @endif
             @if ($genre) · genre: <em>{{ $genre }}</em> @endif
             @if ($tahun) · tahun: <em>{{ $tahun }}</em> @endif
+            @if (!empty($rated)) · rating usia: <em>{{ $rated }}</em> @endif
             @if ($negara) · negara: <em>{{ $negara }}</em> @endif
         </span>
         <div class="d-flex gap-2">
