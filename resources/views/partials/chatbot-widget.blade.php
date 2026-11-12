@@ -16,7 +16,7 @@
         <button id="chatbot-close" type="button" class="btn-close btn-close-white btn-sm" aria-label="Tutup"></button>
     </div>
     <div id="chatbot-messages" class="card-body d-flex flex-column gap-2" style="overflow-y:auto; height:340px; font-size:0.9rem;">
-        <div class="chat-bubble-bot align-self-start">Tanya apa saja soal film &mdash; sutradara, rekomendasi, dsb. Saya tahu 150 film di dataset CineGraph! </div>
+        <div class="chat-bubble-bot align-self-start">Saya khusus membahas film yang ada di database CineGraph &mdash; rekomendasi, sutradara, pemeran, dsb. </div>
     </div>
     <div class="card-footer p-2" style="border-color: rgba(255,255,255,0.1);">
         <form id="chatbot-form" class="d-flex gap-1">
