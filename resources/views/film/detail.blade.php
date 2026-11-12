@@ -30,33 +30,57 @@
     .meta-row strong { color: #fff; }
     .meta-row .sep { color: rgba(255,255,255,0.2); }
     .section-label { font-size: .7rem; font-weight: 700; text-transform: uppercase; letter-spacing: .06em; color: var(--sand); margin-bottom: .75rem; }
+    .cast-grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(132px, 1fr)); gap: 1.1rem .75rem; }
     .cast-card {
         text-align: center; text-decoration: none; color: inherit;
-        display: flex; flex-direction: column; align-items: center; gap: .35rem;
-        width: 105px;
+        display: flex; flex-direction: column; align-items: center; gap: .4rem;
     }
     .cast-card img, .cast-card .cast-placeholder {
-        width: 72px; height: 72px; border-radius: 50%; object-fit: cover;
+        width: 76px; height: 76px; border-radius: 50%; object-fit: cover;
         border: 2px solid transparent; transition: border-color .15s, transform .15s;
     }
     .cast-card .cast-placeholder {
-        background: rgba(255,255,255,0.08); display: flex; align-items: center; justify-content: center; font-size: 1.5rem;
+        background: rgba(255,255,255,0.08); display: flex; align-items: center; justify-content: center;
+        font-size: 1.6rem; font-weight: 700; color: var(--text-dim);
     }
     .cast-card:hover img, .cast-card:hover .cast-placeholder { border-color: var(--cyan); transform: scale(1.05); }
-    .cast-name { font-size: .78rem; font-weight: 700; line-height: 1.25; word-break: break-word; }
+    .cast-name { font-size: .8rem; font-weight: 700; line-height: 1.25; word-break: break-word; }
     .cast-role-badge {
-        font-size: .62rem; padding: .15rem .5rem; border-radius: 999px;
+        font-size: .68rem; padding: .22rem .6rem; border-radius: 10px; line-height: 1.35;
         background: rgba(255,255,255,0.12); font-weight: 600; max-width: 100%;
-        overflow: hidden; text-overflow: ellipsis; white-space: nowrap;
+        white-space: normal; word-break: break-word; text-align: center;
     }
     .cast-role-badge.sutradara { background: rgba(39,196,232,.18); color: var(--cyan); border: 1px solid rgba(39,196,232,.35); }
     .cast-role-badge.pemeran { background: rgba(247,185,40,.15); color: var(--gold-soft); border: 1px solid rgba(247,185,40,.35); }
+    .ost-grid { display: grid; gap: .8rem; grid-template-columns: 1fr; }
+    @media (min-width: 768px) { .ost-grid { grid-template-columns: repeat(2, 1fr); } }
+    @media (min-width: 1200px) { .ost-grid.cols-3 { grid-template-columns: repeat(3, 1fr); } }
+    .ost-grid.cols-1 { grid-template-columns: 1fr; max-width: 560px; }
     .ost-track {
+        display: flex; flex-direction: column; gap: .15rem;
         background: rgba(255,255,255,0.05); border: 1px solid rgba(255,255,255,0.1);
-        border-radius: 10px; padding: .75rem; transition: border-color .15s;
+        border-radius: 12px; padding: .85rem 1rem; transition: border-color .15s;
     }
     .ost-track:hover { border-color: var(--sky); }
-    audio { border-radius: 6px; height: 32px; }
+    .ost-title { font-size: .9rem; font-weight: 700; line-height: 1.35; }
+    .ost-artist { font-size: .8rem; color: rgba(255,255,255,.55); line-height: 1.3; }
+    .ost-player { margin-top: auto; padding-top: .7rem; }
+    audio { display: block; width: 100%; height: 36px; border-radius: 8px; color-scheme: dark; }
+    .info-tiles { display: flex; flex-wrap: wrap; gap: .9rem; align-items: stretch; margin-top: 1.5rem; }
+    .info-tile {
+        background: rgba(255,255,255,.04); border: 1px solid var(--line); border-radius: 14px;
+        padding: .8rem 1.1rem; display: flex; flex-direction: column; gap: .5rem; min-width: 0;
+    }
+    .tile-label { font-size: .68rem; font-weight: 700; text-transform: uppercase; letter-spacing: .06em; color: var(--sand); }
+    .tile-rating-val { font-size: 2rem; font-weight: 800; line-height: 1; color: var(--gold-soft); }
+    .tile-rating-val small { font-size: .9rem; font-weight: 600; color: rgba(255,255,255,.5); }
+    .tile-stream { flex: 1 1 300px; }
+    .stream-groups { display: flex; flex-wrap: wrap; gap: .9rem 1.6rem; }
+    .stream-cat { font-size: .72rem; font-weight: 700; color: rgba(255,255,255,.55); margin-bottom: .4rem; }
+    .stream-list { display: flex; flex-wrap: wrap; gap: .6rem; }
+    .stream-item { display: flex; flex-direction: column; align-items: center; gap: .3rem; text-decoration: none; width: 64px; }
+    .stream-item .provider-logo { width: 46px; height: 46px; border-radius: 10px; }
+    .stream-item span { font-size: .62rem; color: rgba(255,255,255,.6); text-align: center; line-height: 1.2; word-break: break-word; }
     .review-card {
         background: rgba(255,255,255,0.04); border-left: 3px solid var(--sky);
         border-radius: 0 10px 10px 0; padding: .8rem 1rem;
@@ -64,10 +88,6 @@
     .sejenis-card .sejenis-title { font-size: .78rem; font-weight: 600; }
     .sejenis-card .sejenis-year { font-size: .68rem; color: rgba(255,255,255,0.5); }
     .data-source-note { font-size: .7rem; color: rgba(255,255,255,0.35); }
-    .boxoffice-card {
-        background: rgba(242,169,0,0.08); border: 1px solid rgba(242,169,0,0.25);
-        border-radius: 10px; padding: .75rem 1rem;
-    }
 </style>
 @endpush
 
@@ -184,28 +204,58 @@
                 @endif
             </div>
 
-            {{-- Box Office --}}
-            @if ($film['boxOfficeUSD'])
-                <div class="boxoffice-card mt-4">
-                    <div class="section-label mb-1"> Box Office</div>
-                    <div class="fw-bold">
-                        ${{ number_format($film['boxOfficeUSD'], 0, ',', '.') }} USD
-                        @if (!empty($film['externalData']['boxOfficeIDR']))
-                            &mdash; <span class="text-sand">Rp{{ number_format($film['externalData']['boxOfficeIDR'], 0, ',', '.') }}</span>
-                        @endif
+            {{-- Info tiles: Rating, Streaming, Box Office --}}
+            @php
+                $streaming     = $film['externalData']['streaming'] ?? null;
+                $streamingLink = $streaming['link'] ?? null;
+                $kategoriLabel = ['flatrate' => 'Langganan', 'rent' => 'Sewa', 'buy' => 'Beli'];
+                $adaProvider   = $streaming && (!empty($streaming['flatrate']) || !empty($streaming['rent']) || !empty($streaming['buy']));
+            @endphp
+            <div class="info-tiles">
+                @if (!empty($film['rating']))
+                    <div class="info-tile">
+                        <div class="tile-label">Rating TMDB</div>
+                        <div class="tile-rating-val">{{ number_format($film['rating'], 1) }} <small>/ 10</small></div>
                     </div>
-                    @if (!empty($film['externalData']['exchangeRate']))
-                        <!-- <div class="data-source-note mt-1">
-                            Kurs: 1 USD = Rp{{ number_format($film['externalData']['exchangeRate'], 0, ',', '.') }}
-                            @if (!empty($film['externalData']['exchangeRateAt']))
-                                · per {{ $film['externalData']['exchangeRateAt'] }} (ExchangeRate API)
-                            @endif
-                        </div> -->
+                @endif
+
+                <div class="info-tile tile-stream" id="streaming">
+                    <div class="tile-label">Streaming (Indonesia)</div>
+                    @if ($adaProvider)
+                        <div class="stream-groups">
+                            @foreach ($kategoriLabel as $kategori => $label)
+                                @if (!empty($streaming[$kategori]))
+                                    <div>
+                                        <div class="stream-cat">{{ $label }}</div>
+                                        <div class="stream-list">
+                                            @foreach ($streaming[$kategori] as $provider)
+                                                <a href="{{ $streamingLink ?? '#' }}" target="_blank" rel="noopener"
+                                                   title="{{ $provider['provider_name'] }}" class="stream-item">
+                                                    <img src="https://image.tmdb.org/t/p/w92{{ $provider['logo_path'] }}"
+                                                         alt="{{ $provider['provider_name'] }}" class="provider-logo">
+                                                    <span>{{ $provider['provider_name'] }}</span>
+                                                </a>
+                                            @endforeach
+                                        </div>
+                                    </div>
+                                @endif
+                            @endforeach
+                        </div>
                     @else
-                        <div class="data-source-note mt-1">Konversi kurs sementara tidak tersedia.</div>
+                        <div class="text-white-50 small">Belum tersedia data streaming untuk wilayah Indonesia.</div>
                     @endif
                 </div>
-            @endif
+
+                @if ($film['boxOfficeUSD'])
+                    <div class="info-tile">
+                        <div class="tile-label">Box Office</div>
+                        <div class="fw-bold">${{ number_format($film['boxOfficeUSD'], 0, ',', '.') }} USD</div>
+                        @if (!empty($film['externalData']['boxOfficeIDR']))
+                            <div class="text-sand small fw-semibold">Rp{{ number_format($film['externalData']['boxOfficeIDR'], 0, ',', '.') }}</div>
+                        @endif
+                    </div>
+                @endif
+            </div>
         </div>
     </div>
 
@@ -231,7 +281,7 @@
         @if ($sutradaraList->isNotEmpty())
             <div class="mb-4">
                 <div class="section-label"> Sutradara</div>
-                <div class="d-flex flex-wrap gap-3">
+                <div class="cast-grid">
                     @foreach ($sutradaraList as $s)
                         <a href="{{ route('person.detail', $s['id']) }}"
                            class="cast-card"
@@ -239,9 +289,9 @@
                             @if ($s['foto'])
                                 <img src="{{ $s['foto'] }}" alt="{{ $s['nama'] }}">
                             @else
-                                <div class="cast-placeholder"></div>
+                                <div class="cast-placeholder">{{ mb_strtoupper(mb_substr($s['nama'], 0, 1)) }}</div>
                             @endif
-                            <div class="cast-name">{{ Str::limit($s['nama'], 22) }}</div>
+                            <div class="cast-name">{{ $s['nama'] }}</div>
                             <span class="cast-role-badge sutradara">Sutradara</span>
                         </a>
                     @endforeach
@@ -253,7 +303,7 @@
         @if ($aktorList->isNotEmpty())
             <div>
                 <div class="section-label"> Pemeran &amp; Karakter</div>
-                <div class="d-flex flex-wrap gap-3">
+                <div class="cast-grid">
                     @foreach ($aktorList as $a)
                         <a href="{{ route('person.detail', $a['id']) }}"
                            class="cast-card"
@@ -261,12 +311,12 @@
                             @if ($a['foto'])
                                 <img src="{{ $a['foto'] }}" alt="{{ $a['nama'] }}">
                             @else
-                                <div class="cast-placeholder"></div>
+                                <div class="cast-placeholder">{{ mb_strtoupper(mb_substr($a['nama'], 0, 1)) }}</div>
                             @endif
-                            <div class="cast-name">{{ Str::limit($a['nama'], 22) }}</div>
+                            <div class="cast-name">{{ $a['nama'] }}</div>
                             @if (!empty($a['karakter']))
                                 <span class="cast-role-badge pemeran" title="{{ $a['nama'] }} sebagai {{ $a['karakter'] }}">
-                                    sebagai {{ Str::limit($a['karakter'], 20) }}
+                                    sebagai {{ $a['karakter'] }}
                                 </span>
                             @else
                                 <span class="cast-role-badge pemeran">Pemeran</span>
@@ -288,24 +338,29 @@
         </div>
     @endif
 
-    {{-- ======================= OST + STREAMING + REVIEW ======================= --}}
+    {{-- ======================= SOUNDTRACK ======================= --}}
     <hr class="pilem-hr my-4">
-    <div class="row g-4">
-
-        {{-- OST --}}
-        <div class="col-lg-4" id="soundtrack">
-            <div class="section-label"> Soundtrack (iTunes)</div>
-            @if (!empty($film['externalData']['soundtrack']))
-                <div class="d-flex flex-column gap-2">
-                    @foreach (array_slice($film['externalData']['soundtrack'], 0, 5) as $track)
-                        <div class="ost-track">
-                            <div class="fw-semibold" style="font-size:.85rem;">{{ $track['trackName'] ?? '-' }}</div>
-                            <div class="text-white-50 small mb-2">{{ $track['artistName'] ?? '' }}</div>
+    <div id="soundtrack">
+        <div class="section-label">Soundtrack (iTunes)</div>
+        @php
+            $ostList = array_values(array_filter($film['externalData']['soundtrack'] ?? [], fn ($t) => !empty($t['trackName'])));
+            $ostN = min(6, count($ostList));
+            if ($ostN === 5) { $ostN = 4; }
+            $ostList = array_slice($ostList, 0, $ostN);
+            $ostCols = in_array($ostN, [3, 6]) ? 'cols-3' : ($ostN === 1 ? 'cols-1' : 'cols-2');
+        @endphp
+        @if ($ostN > 0)
+            <div class="ost-grid {{ $ostCols }}">
+                @foreach ($ostList as $track)
+                    <div class="ost-track">
+                        <div class="ost-title">{{ $track['trackName'] }}</div>
+                        <div class="ost-artist">{{ $track['artistName'] ?? '' }}</div>
+                        <div class="ost-player">
                             @if (!empty($track['previewUrl']))
-                                <audio controls preload="none" class="w-100">
+                                <audio controls preload="none">
                                     <source src="{{ $track['previewUrl'] }}" type="audio/mp4">
                                 </audio>
-                                <div class="data-source-note mt-1">
+                                <div class="data-source-note mt-2">
                                     Preview 30 detik ·
                                     <a href="https://open.spotify.com/search/{{ urlencode(trim(($track['trackName'] ?? '') . ' ' . ($track['artistName'] ?? ''))) }}"
                                        target="_blank" rel="noopener" class="text-sand">Cari di Spotify →</a>
@@ -314,65 +369,14 @@
                                 <div class="data-source-note">Preview tidak tersedia.</div>
                             @endif
                         </div>
-                    @endforeach
-                </div>
-            @else
-                <div class="card-flat p-3 text-center">
-                    <div class="text-white-50 small">Data soundtrack tidak tersedia.</div>
-                </div>
-            @endif
-        </div>
-
-        {{-- Streaming --}}
-        <div class="col-lg-4" id="streaming">
-            <div class="section-label"> Streaming (Region Indonesia)</div>
-            @php
-                $streaming     = $film['externalData']['streaming'] ?? null;
-                $streamingLink = $streaming['link'] ?? null;
-                $kategoriLabel = ['flatrate' => 'Langganan', 'rent' => 'Sewa', 'buy' => 'Beli'];
-                $adaProvider   = $streaming && (!empty($streaming['flatrate']) || !empty($streaming['rent']) || !empty($streaming['buy']));
-            @endphp
-            @if ($adaProvider)
-                @foreach ($kategoriLabel as $kategori => $label)
-                    @if (!empty($streaming[$kategori]))
-                        <div class="mb-3">
-                            <div class="text-white-50 small fw-bold mb-2">{{ $label }}</div>
-                            <div class="d-flex flex-wrap gap-2">
-                                @foreach ($streaming[$kategori] as $provider)
-                                    <a href="{{ $streamingLink ?? '#' }}" target="_blank" rel="noopener"
-                                       title="{{ $provider['provider_name'] }}"
-                                       style="display:flex; flex-direction:column; align-items:center; gap:.3rem; text-decoration:none;">
-                                        <img src="https://image.tmdb.org/t/p/w92{{ $provider['logo_path'] }}"
-                                             alt="{{ $provider['provider_name'] }}" class="provider-logo">
-                                        <span style="font-size:.6rem; color:rgba(255,255,255,0.5);">
-                                            {{ Str::limit($provider['provider_name'], 12) }}
-                                        </span>
-                                    </a>
-                                @endforeach
-                            </div>
-                        </div>
-                    @endif
+                    </div>
                 @endforeach
-            @else
-                <div class="card-flat p-3 text-center">
-                    <div class="text-white-50 small">Belum tersedia data streaming untuk wilayah Indonesia.</div>
-                </div>
-            @endif
-        </div>
-
-        {{-- Rating --}}
-        <div class="col-lg-4">
-            <div class="section-label"> Rating Film (TMDB)</div>
-            @if (!empty($film['rating']))
-                <div class="card-flat p-4 text-center">
-                    <h2 class="text-sand mb-0 fw-bold">{{ number_format($film['rating'], 1) }} <span class="fs-6 text-white-50">/ 10</span></h2>
-                </div>
-            @else
-                <div class="card-flat p-3 text-center">
-                    <div class="text-white-50 small">Belum ada rating.</div>
-                </div>
-            @endif
-        </div>
+            </div>
+        @else
+            <div class="card-flat p-3 text-center">
+                <div class="text-white-50 small">Data soundtrack tidak tersedia.</div>
+            </div>
+        @endif
     </div>
 
     {{-- ======================= FILM SEJENIS ======================= --}}

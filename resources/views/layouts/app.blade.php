@@ -278,8 +278,8 @@
         table.table-pilem th { color: var(--text-mute); font-size: .68rem; font-weight: 700; letter-spacing: .08em; text-transform: uppercase; border-color: var(--line); padding: 1rem; }
         table.table-pilem td { border-color: var(--line); vertical-align: middle; padding: 1.1rem 1rem; }
         .provider-logo { width: 34px; height: 34px; border-radius: 8px; }
-        .chat-bubble-user { background: rgba(247,185,40,.12); border: 1px solid rgba(247,185,40,.3); border-radius: 14px 14px 4px 14px; padding: .6rem .9rem; max-width: 80%; font-size: .88rem; }
-        .chat-bubble-bot { background: rgba(255,255,255,.05); border: 1px solid var(--line); border-radius: 14px 14px 14px 4px; padding: .6rem .9rem; max-width: 85%; font-size: .88rem; line-height: 1.55; }
+        .chat-bubble-user { color: var(--text); background: rgba(247,185,40,.12); border: 1px solid rgba(247,185,40,.3); border-radius: 14px 14px 4px 14px; padding: .6rem .9rem; max-width: 80%; font-size: .88rem; }
+        .chat-bubble-bot { color: var(--text); background: rgba(255,255,255,.05); border: 1px solid var(--line); border-radius: 14px 14px 14px 4px; padding: .6rem .9rem; max-width: 85%; font-size: .88rem; line-height: 1.55; }
         .quick-prompt {
             display: flex; justify-content: space-between; align-items: center; gap: .75rem; width: 100%; text-align: left;
             background: rgba(255,255,255,.03); border: 1px solid var(--line); color: var(--text-dim);
