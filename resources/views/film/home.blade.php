@@ -475,7 +475,7 @@
                 <div id="pilmy-messages" class="flex-grow-1 overflow-auto mb-3 d-flex flex-column gap-3 pe-1">
                     <div class="align-self-start" style="max-width:88%;">
                         <div class="chat-who mb-1">Pilmy</div>
-                        <div class="chat-bubble-bot">Halo! Saya tahu film Disney, Marvel &amp; Pixar di dataset CineGraph. Tanya apa saja: rekomendasi, sutradara, atau info film lainnya.</div>
+                        <div class="chat-bubble-bot">Halo! Saya khusus membahas film Disney, Marvel &amp; Pixar yang ada di database CineGraph. Tanya rekomendasi, sutradara, pemeran, atau info film di katalog ini.</div>
                     </div>
                 </div>
                 <form id="pilmy-form" class="chat-input-row">
