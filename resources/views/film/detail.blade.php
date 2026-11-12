@@ -316,7 +316,7 @@
                             <div class="cast-name">{{ $a['nama'] }}</div>
                             @if (!empty($a['karakter']))
                                 <span class="cast-role-badge pemeran" title="{{ $a['nama'] }} sebagai {{ $a['karakter'] }}">
-                                    sebagai {{ $a['karakter'] }}
+                                    {{ $a['karakter'] }}
                                 </span>
                             @else
                                 <span class="cast-role-badge pemeran">Pemeran</span>
