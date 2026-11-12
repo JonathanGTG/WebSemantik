@@ -95,14 +95,14 @@
                          style="aspect-ratio:2/3; object-fit:cover;">
                     @if (!empty($film['rating']))
                         <span class="rating-badge position-absolute top-0 end-0 m-2">
-                            ⭐ {{ number_format($film['rating'], 1) }}/10
+                             &#9733; {{ number_format($film['rating'], 1) }}/10
                         </span>
                     @endif
                 </div>
             @else
                 <div class="position-relative d-flex align-items-center justify-content-center rounded-3 shadow w-100 bg-dark text-white-50"
                      style="aspect-ratio:2/3; font-size:3rem; border:1px solid rgba(255,255,255,0.1);">
-                    🎬
+                    
                 </div>
             @endif
         </div>
@@ -143,7 +143,7 @@
                 @endif
                 @if ($film['komposer'])
                     <span class="sep">·</span>
-                    <span>🎼 <span property="musicBy">{{ $film['komposer'] }}</span></span>
+                    <span> <span property="musicBy">{{ $film['komposer'] }}</span></span>
                 @endif
             </div>
 
@@ -176,18 +176,18 @@
             {{-- CTA buttons --}}
             <div class="d-flex gap-2 flex-wrap">
                 @if (!empty($film['externalData']['trailerKey']))
-                    <a href="#trailer" class="btn btn-sun px-4">▶ Tonton Trailer</a>
+                    <a href="#trailer" class="btn btn-sun px-4">Tonton Trailer</a>
                 @endif
-                <a href="#soundtrack" class="btn btn-outline-pilem px-4">🎵 Dengar OST</a>
+                <a href="#soundtrack" class="btn btn-outline-pilem px-4"> Dengar OST</a>
                 @if (!empty($film['externalData']['streaming']))
-                    <a href="#streaming" class="btn btn-outline-pilem px-4">📺 Streaming</a>
+                    <a href="#streaming" class="btn btn-outline-pilem px-4"> Streaming</a>
                 @endif
             </div>
 
             {{-- Box Office --}}
             @if ($film['boxOfficeUSD'])
                 <div class="boxoffice-card mt-4">
-                    <div class="section-label mb-1">💰 Box Office</div>
+                    <div class="section-label mb-1"> Box Office</div>
                     <div class="fw-bold">
                         ${{ number_format($film['boxOfficeUSD'], 0, ',', '.') }} USD
                         @if (!empty($film['externalData']['boxOfficeIDR']))
@@ -230,7 +230,7 @@
         {{-- Baris 1: Sutradara --}}
         @if ($sutradaraList->isNotEmpty())
             <div class="mb-4">
-                <div class="section-label">🎬 Sutradara</div>
+                <div class="section-label"> Sutradara</div>
                 <div class="d-flex flex-wrap gap-3">
                     @foreach ($sutradaraList as $s)
                         <a href="{{ route('person.detail', $s['id']) }}"
@@ -239,7 +239,7 @@
                             @if ($s['foto'])
                                 <img src="{{ $s['foto'] }}" alt="{{ $s['nama'] }}">
                             @else
-                                <div class="cast-placeholder">🎬</div>
+                                <div class="cast-placeholder"></div>
                             @endif
                             <div class="cast-name">{{ Str::limit($s['nama'], 22) }}</div>
                             <span class="cast-role-badge sutradara">Sutradara</span>
@@ -252,7 +252,7 @@
         {{-- Baris 2: Pemeran & Karakter --}}
         @if ($aktorList->isNotEmpty())
             <div>
-                <div class="section-label">🎭 Pemeran &amp; Karakter</div>
+                <div class="section-label"> Pemeran &amp; Karakter</div>
                 <div class="d-flex flex-wrap gap-3">
                     @foreach ($aktorList as $a)
                         <a href="{{ route('person.detail', $a['id']) }}"
@@ -261,7 +261,7 @@
                             @if ($a['foto'])
                                 <img src="{{ $a['foto'] }}" alt="{{ $a['nama'] }}">
                             @else
-                                <div class="cast-placeholder">🎭</div>
+                                <div class="cast-placeholder"></div>
                             @endif
                             <div class="cast-name">{{ Str::limit($a['nama'], 22) }}</div>
                             @if (!empty($a['karakter']))
@@ -281,7 +281,7 @@
     {{-- ======================= TRAILER ======================= --}}
     @if (!empty($film['externalData']['trailerKey']))
         <hr class="pilem-hr my-4">
-        <div class="section-label" id="trailer">🎬 Trailer Resmi</div>
+        <div class="section-label" id="trailer"> Trailer Resmi</div>
         <div class="ratio ratio-16x9 rounded-4 overflow-hidden" style="max-width: 860px;">
             <iframe src="https://www.youtube.com/embed/{{ $film['externalData']['trailerKey'] }}"
                     title="Trailer {{ $film['nama'] }}" allowfullscreen style="border:0;"></iframe>
@@ -294,7 +294,7 @@
 
         {{-- OST --}}
         <div class="col-lg-4" id="soundtrack">
-            <div class="section-label">🎵 Soundtrack (iTunes)</div>
+            <div class="section-label"> Soundtrack (iTunes)</div>
             @if (!empty($film['externalData']['soundtrack']))
                 <div class="d-flex flex-column gap-2">
                     @foreach (array_slice($film['externalData']['soundtrack'], 0, 5) as $track)
@@ -325,7 +325,7 @@
 
         {{-- Streaming --}}
         <div class="col-lg-4" id="streaming">
-            <div class="section-label">📺 Streaming (Region Indonesia)</div>
+            <div class="section-label"> Streaming (Region Indonesia)</div>
             @php
                 $streaming     = $film['externalData']['streaming'] ?? null;
                 $streamingLink = $streaming['link'] ?? null;
@@ -362,7 +362,7 @@
 
         {{-- Rating --}}
         <div class="col-lg-4">
-            <div class="section-label">⭐ Rating Film (TMDB)</div>
+            <div class="section-label"> Rating Film (TMDB)</div>
             @if (!empty($film['rating']))
                 <div class="card-flat p-4 text-center">
                     <h2 class="text-sand mb-0 fw-bold">{{ number_format($film['rating'], 1) }} <span class="fs-6 text-white-50">/ 10</span></h2>
@@ -394,7 +394,7 @@
                             @else
                                 <div class="d-flex align-items-center justify-content-center"
                                      style="aspect-ratio:2/3; background: rgba(255,255,255,0.05);">
-                                    <span style="font-size:1.8rem; opacity:.3;">🎬</span>
+                                    <span style="font-size:1.8rem; opacity:.3;"></span>
                                 </div>
                             @endif
                             <div class="p-2">

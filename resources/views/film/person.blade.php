@@ -49,7 +49,7 @@
         @if (!empty($person['foto']))
             <img src="{{ $person['foto'] }}" property="image" class="person-avatar" alt="{{ $person['nama'] }}">
         @else
-            <div class="person-avatar-placeholder">🎬</div>
+            <div class="person-avatar-placeholder"></div>
         @endif
         <div>
             <div class="text-uppercase small fw-bold mb-1 text-sand" style="letter-spacing:.05em;">Profil</div>
@@ -62,10 +62,10 @@
 
             <div class="d-flex gap-2 flex-wrap mb-3">
                 @if ($asSutradara->count())
-                    <span class="role-pill sutradara">🎬 Sutradara ({{ $asSutradara->count() }})</span>
+                    <span class="role-pill sutradara"> Sutradara ({{ $asSutradara->count() }})</span>
                 @endif
                 @if ($asAktor->count())
-                    <span class="role-pill aktor">🎭 Aktor ({{ $asAktor->count() }})</span>
+                    <span class="role-pill aktor"> Aktor ({{ $asAktor->count() }})</span>
                 @endif
             </div>
 
@@ -80,7 +80,7 @@
     {{-- ======================= FILMOGRAFI ======================= --}}
     @if (empty($filmografi))
         <div class="card-flat p-5 text-center">
-            <div style="font-size:3rem; opacity:.3;">🎬</div>
+            <div style="font-size:3rem; opacity:.3;"></div>
             <p class="text-white-50 mb-0 mt-2">Belum ada film tercatat untuk orang ini di dataset.</p>
         </div>
     @else
@@ -88,8 +88,8 @@
         @if ($asSutradara->count() && $asAktor->count())
             <div class="filmografi-tabs d-flex gap-2 mb-4">
                 <button class="tab-btn active" onclick="filterPeran('semua', this)">Semua ({{ count($filmografi) }})</button>
-                <button class="tab-btn" onclick="filterPeran('Sutradara', this)">🎬 Sebagai Sutradara ({{ $asSutradara->count() }})</button>
-                <button class="tab-btn" onclick="filterPeran('Aktor', this)">🎭 Sebagai Aktor ({{ $asAktor->count() }})</button>
+                <button class="tab-btn" onclick="filterPeran('Sutradara', this)"> Sebagai Sutradara ({{ $asSutradara->count() }})</button>
+                <button class="tab-btn" onclick="filterPeran('Aktor', this)"> Sebagai Aktor ({{ $asAktor->count() }})</button>
             </div>
         @endif
 
@@ -102,13 +102,13 @@
                                 <div class="position-relative">
                                     <img src="{{ pilemPoster($filmItem['id'], $filmItem['poster']) }}" class="poster" alt="{{ $filmItem['nama'] }}">
                                     <span class="position-absolute bottom-0 start-0 m-1 role-pill {{ strtolower($filmItem['peran']) }}">
-                                        {{ $filmItem['peran'] === 'Sutradara' ? '🎬' : '🎭' }}
+                                        {{ $filmItem['peran'] }}
                                     </span>
                                 </div>
                             @else
                                 <div class="d-flex align-items-center justify-content-center"
                                      style="aspect-ratio:2/3; background: rgba(255,255,255,0.05);">
-                                    <span style="font-size:2rem; opacity:.3;">🎬</span>
+                                    <span style="font-size:2rem; opacity:.3;"></span>
                                 </div>
                             @endif
                             <div class="p-2">

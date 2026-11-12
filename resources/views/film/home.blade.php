@@ -306,14 +306,9 @@
         <div>
             <div class="d-flex align-items-center gap-2 mb-1">
                 <h2 class="section-title mb-0">Now Playing</h2>
-                <span class="badge border border-info border-opacity-50 text-cyan bg-info bg-opacity-10 px-2 py-1" style="font-size: .75rem;">
-                    {{ ($category ?? 'now_playing') === 'top_rated' ? '⭐ Koleksi Terbaik Sepanjang Masa' : '🔥 Sedang Tayang (2024–2026)' }}
-                </span>
             </div>
             <p class="text-dim small mb-0">
-                @if (($category ?? 'now_playing') === 'top_rated')
-                    Koleksi film legendaris dengan rating tertinggi sepanjang masa di dataset CineGraph.
-                @else
+                @if (($category ?? 'now_playing') !== 'top_rated')
                     Film rilis terbaru &amp; sedang tayang (2024–2026) dari Disney, Marvel Studios, dan Pixar.
                 @endif
             </p>
@@ -324,12 +319,12 @@
                 <a href="{{ route('home', array_merge(request()->query(), ['category' => 'now_playing'])) }}#now-playing"
                    class="{{ ($category ?? 'now_playing') !== 'top_rated' ? 'active' : '' }}"
                    style="text-decoration:none; padding: .45rem .85rem; border-radius: 10px; font-size: .8rem; font-weight: 600; display: inline-flex; align-items: center; gap: .3rem;">
-                    🔥 Sedang Tayang (2024–2026)
+                    Sedang Tayang (2024–2026)
                 </a>
                 <a href="{{ route('home', array_merge(request()->query(), ['category' => 'top_rated'])) }}#now-playing"
                    class="{{ ($category ?? 'now_playing') === 'top_rated' ? 'active' : '' }}"
                    style="text-decoration:none; padding: .45rem .85rem; border-radius: 10px; font-size: .8rem; font-weight: 600; display: inline-flex; align-items: center; gap: .3rem;">
-                    ⭐ Terbaik Sepanjang Masa
+                    Terbaik Sepanjang Masa
                 </a>
             </div>
 
@@ -374,7 +369,7 @@
                             <div class="np-sub">{{ Str::limit($f['genre'] ?? '', 34) }}</div>
                         </a>
                         <div class="np-meta">
-                            <span>🗓️ {{ $f['tahun'] ? substr($f['tahun'], 0, 4) : '-' }}</span>
+                            <span>{{ $f['tahun'] ? substr($f['tahun'], 0, 4) : '-' }}</span>
                             <span>{{ pilemFormatDurasi($f['durasi']) ?? '-' }}</span>
                             <b>{{ $f['rating'] ? number_format($f['rating'], 1).'/10' : '-' }}</b>
                         </div>

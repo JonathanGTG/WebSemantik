@@ -507,7 +507,7 @@ class FilmController extends Controller
             PREFIX rdfs: <http://www.w3.org/2000/01/rdf-schema#>
             PREFIX film: <http://pilem.org/cinegraph/ontology#>
             SELECT ?film ?nama ?tahun ?rating ?durasi ?tmdbId
-                   (SAMPLE(?posterRdf) AS ?posterRdf)
+                   (SAMPLE(?poster) AS ?poster)
                    (SAMPLE(?sutradaraNama) AS ?sutradara)
                    (GROUP_CONCAT(DISTINCT ?genreLabel; separator=", ") AS ?genres) WHERE {
                 ?film a schema:Movie ;

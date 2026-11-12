@@ -161,6 +161,49 @@
         .nav-search svg { position: absolute; left: 14px; top: 50%; transform: translateY(-50%); color: var(--text-mute); pointer-events: none; }
         .nav-search input { padding-left: 2.4rem; width: 300px; }
 
+
+        /* ---------- Dropdown kustom (senada tema) ---------- */
+        select.form-select { color-scheme: dark; }
+        select.form-select option { background: #0e1830; color: #eef2fb; }
+        .dd { position: relative; }
+        .dd select { display: none; }
+        .dd-btn {
+            width: 100%; display: flex; align-items: center; justify-content: space-between; gap: .5rem;
+            padding: .3rem .6rem; min-height: 31px; text-align: left; cursor: pointer; font-family: inherit;
+            background: rgba(255,255,255,.04); border: 1px solid var(--line); border-radius: 12px;
+            color: var(--text); font-size: .88rem; transition: border-color .15s, background .15s, box-shadow .15s;
+        }
+        .dd-btn:hover { border-color: var(--line-strong); background: rgba(255,255,255,.07); }
+        .dd.open .dd-btn, .dd-btn:focus-visible {
+            outline: none; border-color: var(--cyan); background: rgba(255,255,255,.07);
+            box-shadow: 0 0 0 3px rgba(39,196,232,.15);
+        }
+        .dd-label { overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+        .dd-caret { flex: none; color: var(--text-mute); transition: transform .18s, color .15s; }
+        .dd.open .dd-caret { transform: rotate(180deg); color: var(--cyan); }
+        .dd-menu {
+            position: absolute; z-index: 1080; left: 0; right: 0; top: calc(100% + 6px);
+            min-width: 100%; max-height: 260px; overflow-y: auto; padding: .3rem; margin: 0; list-style: none;
+            background: var(--surface); border: 1px solid var(--line-strong); border-radius: 12px;
+            box-shadow: 0 18px 40px rgba(0,0,0,.6);
+            opacity: 0; transform: translateY(-4px); pointer-events: none; visibility: hidden;
+            transition: opacity .14s, transform .14s, visibility .14s;
+            scrollbar-width: thin; scrollbar-color: rgba(130,160,255,.3) transparent;
+        }
+        .dd.open .dd-menu { opacity: 1; transform: none; pointer-events: auto; visibility: visible; }
+        .dd-menu::-webkit-scrollbar { width: 8px; }
+        .dd-menu::-webkit-scrollbar-thumb { background: rgba(130,160,255,.28); border-radius: 8px; }
+        .dd-opt {
+            padding: .42rem .65rem; border-radius: 8px; font-size: .85rem; color: var(--text-dim);
+            cursor: pointer; display: flex; align-items: center; justify-content: space-between; gap: .5rem;
+        }
+        .dd-opt.active, .dd-opt:hover { background: rgba(39,196,232,.14); color: var(--text); }
+        .dd-opt.selected { color: var(--gold-soft); font-weight: 700; }
+        .dd-opt.selected::after {
+            content: ''; width: 6px; height: 6px; border-radius: 50%; background: var(--gold);
+            box-shadow: 0 0 6px var(--gold); flex: none;
+        }
+
         /* ---------- Form & tombol ---------- */
         .search-input, .form-control, .form-select {
             background: rgba(255,255,255,.04); border: 1px solid var(--line);
@@ -306,7 +349,7 @@
                 <div class="d-flex justify-content-between align-items-center mb-3 flex-wrap gap-2">
                     <div class="d-flex align-items-center gap-2">
                         <span class="fw-bold small text-sand" style="letter-spacing: .06em; text-transform: uppercase;">
-                            ☰ Filter &amp; Urutkan Katalog Film
+                             Filter &amp; Urutkan Katalog Film
                         </span>
                         @if (request()->anyFilled(['q','huruf','genre','tahun','rated','sort']))
                             <span class="badge border border-info border-opacity-50 text-cyan bg-info bg-opacity-10" style="font-size: .68rem;">
@@ -317,11 +360,11 @@
                     <div class="d-flex align-items-center gap-2">
                         @if (request()->anyFilled(['q','huruf','genre','tahun','rated','sort']))
                             <a href="{{ route('home') }}" class="btn btn-sm btn-outline-pilem text-danger-emphasis py-1 px-2" style="font-size: .75rem;">
-                                ✕ Reset Filter
+                                Reset Filter
                             </a>
                         @endif
                         <button type="button" class="btn btn-sm btn-outline-pilem py-1 px-2" id="btn-close-filter" aria-label="Tutup Filter" style="font-size: .75rem;">
-                            Tutup ✕
+                            Tutup
                         </button>
                     </div>
                 </div>
@@ -411,7 +454,7 @@
                             <option value="title_desc" {{ request('sort') === 'title_desc' ? 'selected' : '' }}>Judul (Z &rarr; A)</option>
                             <option value="year_desc" {{ request('sort') === 'year_desc' ? 'selected' : '' }}>Tahun Rilis (Terbaru)</option>
                             <option value="year_asc" {{ request('sort') === 'year_asc' ? 'selected' : '' }}>Tahun Rilis (Terlama)</option>
-                            <option value="rating_desc" {{ request('sort') === 'rating_desc' ? 'selected' : '' }}>Rating Tertinggi ⭐</option>
+                            <option value="rating_desc" {{ request('sort') === 'rating_desc' ? 'selected' : '' }}>Rating Tertinggi</option>
                         </select>
                     </div>
 
@@ -495,6 +538,68 @@ document.addEventListener('DOMContentLoaded', function() {
             if (toggleBtn) toggleBtn.classList.remove('active');
         });
     }
+
+
+    // ---------- Dropdown kustom: ganti <select> di panel filter ----------
+    document.querySelectorAll('#filter-navbar-panel select.form-select').forEach(function(sel) {
+        const wrap = document.createElement('div');
+        wrap.className = 'dd';
+        sel.parentNode.insertBefore(wrap, sel);
+        wrap.appendChild(sel);
+
+        const btn = document.createElement('button');
+        btn.type = 'button';
+        btn.className = 'dd-btn';
+        btn.setAttribute('aria-haspopup', 'listbox');
+        btn.innerHTML = '<span class="dd-label"></span><svg class="dd-caret" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><path d="m6 9 6 6 6-6"/></svg>';
+        const menu = document.createElement('ul');
+        menu.className = 'dd-menu';
+        menu.setAttribute('role', 'listbox');
+        wrap.append(btn, menu);
+
+        const label = btn.querySelector('.dd-label');
+        const items = Array.from(sel.options).map(function(o, i) {
+            const li = document.createElement('li');
+            li.className = 'dd-opt';
+            li.setAttribute('role', 'option');
+            li.textContent = o.textContent.trim();
+            li.addEventListener('click', function() { choose(i); close(); btn.focus(); });
+            menu.appendChild(li);
+            return li;
+        });
+        let cursor = sel.selectedIndex;
+
+        function paint() {
+            label.textContent = sel.options[sel.selectedIndex].textContent.trim();
+            items.forEach(function(li, i) {
+                li.classList.toggle('selected', i === sel.selectedIndex);
+                li.classList.toggle('active', i === cursor);
+            });
+        }
+        function choose(i) { sel.selectedIndex = i; cursor = i; paint(); }
+        function open() {
+            document.querySelectorAll('.dd.open').forEach(function(d) { d.classList.remove('open'); });
+            wrap.classList.add('open'); cursor = sel.selectedIndex; paint();
+            const a = items[cursor]; if (a) menu.scrollTop = a.offsetTop - menu.clientHeight / 2;
+        }
+        function close() { wrap.classList.remove('open'); }
+        function move(d) {
+            cursor = Math.max(0, Math.min(items.length - 1, cursor + d)); paint();
+            items[cursor].scrollIntoView({ block: 'nearest' });
+        }
+
+        btn.addEventListener('click', function() { wrap.classList.contains('open') ? close() : open(); });
+        btn.addEventListener('keydown', function(e) {
+            const isOpen = wrap.classList.contains('open');
+            if (e.key === 'ArrowDown' || e.key === 'ArrowUp') {
+                e.preventDefault(); if (!isOpen) open(); else move(e.key === 'ArrowDown' ? 1 : -1);
+            } else if ((e.key === 'Enter' || e.key === ' ') && isOpen) {
+                e.preventDefault(); choose(cursor); close();
+            } else if (e.key === 'Escape' && isOpen) { close(); }
+        });
+        document.addEventListener('click', function(e) { if (!wrap.contains(e.target)) close(); });
+        paint();
+    });
 
     window.selectLetter = function(char) {
         if (inputHuruf && filterForm) {

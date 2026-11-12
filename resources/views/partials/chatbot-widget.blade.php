@@ -5,18 +5,18 @@
     /chatbot/send dan /chatbot/reset, cuma UI-nya beda bentuk.
 --}}
 <button id="chatbot-toggle" class="btn btn-sun rounded-circle shadow"
-        style="position:fixed; bottom:20px; right:20px; width:56px; height:56px; z-index:1050;">
-    💬
+        style="position:fixed; bottom:20px; right:20px; width:56px; height:56px; z-index:1050;" aria-label="Buka chat Pilmy">
+    <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M21 12a8 8 0 0 1-11.6 7.1L4 20l1-4.6A8 8 0 1 1 21 12z"/></svg>
 </button>
 
 <div id="chatbot-panel" class="card shadow"
      style="display:none; flex-direction:column; position:fixed; bottom:85px; right:20px; width:340px; max-height:500px; z-index:1050; background:var(--bg-raised); border-color: var(--line-strong); border-radius:18px; overflow:hidden;">
     <div class="card-header text-white d-flex justify-content-between align-items-center py-2" style="background: var(--surface-2); border-color: var(--line);">
-        <span>🎬 Ask Pilmy</span>
+        <span> Ask Pilmy</span>
         <button id="chatbot-close" type="button" class="btn-close btn-close-white btn-sm" aria-label="Tutup"></button>
     </div>
     <div id="chatbot-messages" class="card-body d-flex flex-column gap-2" style="overflow-y:auto; height:340px; font-size:0.9rem;">
-        <div class="chat-bubble-bot align-self-start">Tanya apa saja soal film &mdash; sutradara, rekomendasi, dsb. Saya tahu 150 film di dataset CineGraph! 🎬</div>
+        <div class="chat-bubble-bot align-self-start">Tanya apa saja soal film &mdash; sutradara, rekomendasi, dsb. Saya tahu 150 film di dataset CineGraph! </div>
     </div>
     <div class="card-footer p-2" style="border-color: rgba(255,255,255,0.1);">
         <form id="chatbot-form" class="d-flex gap-1">
@@ -116,7 +116,7 @@
 
         const label = document.createElement('div');
         label.style.cssText = 'font-size:.65rem; color:rgba(255,255,255,.5); margin-bottom:4px;';
-        label.textContent = '🎬 Klik poster untuk lihat detail film:';
+        label.textContent = ' Klik poster untuk lihat detail film:';
         wrapper.appendChild(label);
 
         const row = document.createElement('div');
@@ -137,7 +137,7 @@
             } else {
                 const placeholder = document.createElement('div');
                 placeholder.className = 'film-no-poster';
-                placeholder.textContent = '🎬';
+                placeholder.textContent = '';
                 link.appendChild(placeholder);
             }
 

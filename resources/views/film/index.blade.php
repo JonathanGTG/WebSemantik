@@ -86,7 +86,7 @@
                             onclick="setGenre('{{ $g }}')">{{ $g }}</button>
                 @endforeach
                 @if ($genre || $tahun || !empty($rated) || !empty($huruf) || $keyword)
-                    <a href="{{ route('film.search') }}" class="filter-badge" style="color: rgba(255,100,100,0.8); border-color: rgba(255,100,100,0.3);">✕ Reset filter</a>
+                    <a href="{{ route('film.search') }}" class="filter-badge" style="color: rgba(255,100,100,0.8); border-color: rgba(255,100,100,0.3);"> Reset filter</a>
                 @endif
             </div>
 
@@ -105,7 +105,7 @@
 {{-- ======================= BELUM SEARCH ======================= --}}
 @if ($belumMencari ?? false)
     <div class="text-center py-5">
-        <div style="font-size: 4rem; opacity: .3;">🎬</div>
+        <div style="font-size: 4rem; opacity: .3;"></div>
         <p class="text-white-50 mb-3">Masukkan judul, atau pilih filter di atas untuk mulai mencari.</p>
         <a href="{{ route('home') }}" class="btn btn-outline-pilem">← Kembali ke Now Playing</a>
     </div>
@@ -113,7 +113,7 @@
 {{-- ======================= TIDAK DITEMUKAN ======================= --}}
 @elseif (empty($films))
     <div class="text-center py-5">
-        <div style="font-size: 4rem; opacity: .3;">🔍</div>
+        <div style="font-size: 4rem; opacity: .3;"></div>
         <p class="text-white-50 mb-1">Film tidak ditemukan.</p>
         <p class="text-white-50 small mb-3">Coba kata kunci lain atau hapus beberapa filter.</p>
         <a href="{{ route('film.search') }}" class="btn btn-outline-pilem">Reset Pencarian</a>
@@ -133,7 +133,7 @@
         </span>
         <div class="d-flex gap-2">
             <button class="filter-badge active" id="view-grid" onclick="setView('grid')">⊞ Grid</button>
-            <button class="filter-badge" id="view-list" onclick="setView('list')">☰ List</button>
+            <button class="filter-badge" id="view-list" onclick="setView('list')"> List</button>
         </div>
     </div>
 
@@ -148,13 +148,13 @@
                                 <img src="{{ pilemPoster($film['id'], $film['poster']) }}" class="poster" alt="{{ $film['nama'] }}">
                                 @if ($film['rating'] ?? false)
                                     <span class="rating-badge position-absolute top-0 end-0 m-2" style="font-size:.7rem; padding:.2rem .5rem;">
-                                        ⭐ {{ number_format($film['rating'], 1) }}
+                                         &#9733; {{ number_format($film['rating'], 1) }}
                                     </span>
                                 @endif
                             </div>
                         @else
                             <div class="d-flex align-items-center justify-content-center" style="aspect-ratio:2/3; background: rgba(255,255,255,0.05);">
-                                <span style="font-size:2.5rem; opacity:.3;">🎬</span>
+                                <span style="font-size:2.5rem; opacity:.3;"></span>
                             </div>
                         @endif
                         <div class="p-2">
@@ -187,7 +187,7 @@
                 @if (pilemPoster($film['id'], $film['poster']))
                     <img src="{{ pilemPoster($film['id'], $film['poster']) }}" alt="{{ $film['nama'] }}">
                 @else
-                    <div class="no-poster">🎬</div>
+                    <div class="no-poster"></div>
                 @endif
                 <div class="flex-grow-1">
                     <div class="fw-bold mb-1">{{ $film['nama'] }}</div>
