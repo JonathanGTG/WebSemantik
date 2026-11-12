@@ -115,6 +115,9 @@
                                 <div class="fw-bold small mb-1">{{ Str::limit($filmItem['nama'], 22) }}</div>
                                 <div class="text-white-50" style="font-size:.72rem;">
                                     {{ $filmItem['tahun'] ? substr($filmItem['tahun'], 0, 4) : '-' }}
+                                    @if (!empty($filmItem['karakter']))
+                                        · <span class="text-sand" title="{{ $filmItem['karakter'] }}">sb. {{ Str::limit($filmItem['karakter'], 18) }}</span>
+                                    @endif
                                 </div>
                             </div>
                         </div>

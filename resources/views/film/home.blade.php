@@ -148,8 +148,10 @@
         <span class="result-count">
             <strong class="text-white">{{ count($films) }}</strong> film ditemukan
             @if ($keyword) untuk &ldquo;{{ $keyword }}&rdquo; @endif
+            @if (!empty($huruf)) &middot; awalan huruf &ldquo;{{ $huruf }}&rdquo; @endif
             @if ($genre) &middot; genre {{ $genre }} @endif
             @if ($tahun) &middot; tahun {{ $tahun }} @endif
+            @if (!empty($rated)) &middot; usia {{ $rated }} @endif
             @if ($negara) &middot; negara {{ $negara }} @endif
         </span>
         <div class="seg">
@@ -180,6 +182,7 @@
                                 <div class="fw-bold small mb-1">{{ Str::limit($film['nama'], 26) }}</div>
                                 <div class="text-dim" style="font-size:.72rem;">
                                     {{ $film['tahun'] ? substr($film['tahun'], 0, 4) : '-' }}
+                                    @if (!empty($film['rated'])) &middot; <span class="badge border border-secondary text-light px-1" style="font-size:.65rem;">{{ $film['rated'] }}</span> @endif
                                     @if ($film['genre']) &middot; {{ Str::limit(explode(',', $film['genre'])[0], 16) }} @endif
                                 </div>
                             </div>
@@ -301,14 +304,42 @@
 <section class="pt-5 mt-4" id="now-playing">
     <div class="d-flex justify-content-between align-items-end flex-wrap gap-3 mb-4">
         <div>
-            <h2 class="section-title mb-1">Now Playing</h2>
-            <p class="text-dim small mb-0">Film dengan rating tertinggi di dataset. Klik kartu untuk membuka detailnya.</p>
+            <div class="d-flex align-items-center gap-2 mb-1">
+                <h2 class="section-title mb-0">Now Playing</h2>
+                <span class="badge border border-info border-opacity-50 text-cyan bg-info bg-opacity-10 px-2 py-1" style="font-size: .75rem;">
+                    {{ ($category ?? 'now_playing') === 'top_rated' ? '⭐ Koleksi Terbaik Sepanjang Masa' : '🔥 Sedang Tayang (2024–2026)' }}
+                </span>
+            </div>
+            <p class="text-dim small mb-0">
+                @if (($category ?? 'now_playing') === 'top_rated')
+                    Koleksi film legendaris dengan rating tertinggi sepanjang masa di dataset CineGraph.
+                @else
+                    Film rilis terbaru &amp; sedang tayang (2024–2026) dari Disney, Marvel Studios, dan Pixar.
+                @endif
+            </p>
         </div>
-        <div class="seg" id="studio-tabs" role="tablist" aria-label="Filter studio">
-            <button type="button" class="active" data-studio="all">All</button>
-            <button type="button" data-studio="Marvel Studios">Marvel Studios</button>
-            <button type="button" data-studio="Pixar">Pixar Animation</button>
-            <button type="button" data-studio="Walt Disney Pictures">Walt Disney</button>
+        <div class="d-flex flex-wrap gap-2 align-items-center">
+            {{-- Pilihan Kategori: Now Playing Terbaru vs All-Time Top Rated --}}
+            <div class="seg" role="tablist" aria-label="Pilih Kategori Tayang">
+                <a href="{{ route('home', array_merge(request()->query(), ['category' => 'now_playing'])) }}#now-playing"
+                   class="{{ ($category ?? 'now_playing') !== 'top_rated' ? 'active' : '' }}"
+                   style="text-decoration:none; padding: .45rem .85rem; border-radius: 10px; font-size: .8rem; font-weight: 600; display: inline-flex; align-items: center; gap: .3rem;">
+                    🔥 Sedang Tayang (2024–2026)
+                </a>
+                <a href="{{ route('home', array_merge(request()->query(), ['category' => 'top_rated'])) }}#now-playing"
+                   class="{{ ($category ?? 'now_playing') === 'top_rated' ? 'active' : '' }}"
+                   style="text-decoration:none; padding: .45rem .85rem; border-radius: 10px; font-size: .8rem; font-weight: 600; display: inline-flex; align-items: center; gap: .3rem;">
+                    ⭐ Terbaik Sepanjang Masa
+                </a>
+            </div>
+
+            {{-- Filter Studio --}}
+            <div class="seg" id="studio-tabs" role="tablist" aria-label="Filter studio">
+                <button type="button" class="active" data-studio="all">Semua Studio</button>
+                <button type="button" data-studio="Marvel Studios">Marvel</button>
+                <button type="button" data-studio="Pixar">Pixar</button>
+                <button type="button" data-studio="Walt Disney Pictures">Disney</button>
+            </div>
         </div>
     </div>
 
@@ -333,12 +364,17 @@
                                 @endif
                                 <span class="badge-studio {{ $badgeClass($studio) }}">{{ pilemStudioBadge($studio) }}</span>
                                 @if ($f['rating'])<span class="rating-badge">&#9733; {{ number_format($f['rating'], 1) }}</span>@endif
+                                @if ($f['tahun'])
+                                    <span class="position-absolute bottom-0 end-0 m-2 badge bg-dark bg-opacity-75 border border-secondary text-white" style="font-size: .65rem; font-weight: 700;">
+                                        {{ substr($f['tahun'], 0, 4) }}
+                                    </span>
+                                @endif
                             </div>
                             <div class="np-title">{{ Str::limit($f['nama'], 28) }}</div>
                             <div class="np-sub">{{ Str::limit($f['genre'] ?? '', 34) }}</div>
                         </a>
                         <div class="np-meta">
-                            <span>{{ $f['tahun'] ? substr($f['tahun'], 0, 4) : '-' }}</span>
+                            <span>🗓️ {{ $f['tahun'] ? substr($f['tahun'], 0, 4) : '-' }}</span>
                             <span>{{ pilemFormatDurasi($f['durasi']) ?? '-' }}</span>
                             <b>{{ $f['rating'] ? number_format($f['rating'], 1).'/10' : '-' }}</b>
                         </div>
@@ -397,7 +433,7 @@
                                         @endif
                                         <span class="min-w-0">
                                             <span class="nm d-block">{{ Str::limit($orang['nama'], 18) }}</span>
-                                            <span class="rl d-block">Aktor</span>
+                                            <span class="rl d-block">{{ !empty($orang['karakter']) ? 'sb. ' . Str::limit($orang['karakter'], 16) : 'Aktor' }}</span>
                                         </span>
                                     </a>
                                 </div>
