@@ -112,13 +112,15 @@
                                 </div>
                             @endif
                             <div class="p-2">
-                                <div class="fw-bold small mb-1">{{ Str::limit($filmItem['nama'], 22) }}</div>
+                                <div class="fw-bold small mb-1" style="line-height:1.3; word-break:break-word;">{{ $filmItem['nama'] }}</div>
                                 <div class="text-white-50" style="font-size:.72rem;">
                                     {{ $filmItem['tahun'] ? substr($filmItem['tahun'], 0, 4) : '-' }}
-                                    @if (!empty($filmItem['karakter']))
-                                        · <span class="text-sand" title="{{ $filmItem['karakter'] }}">sb. {{ Str::limit($filmItem['karakter'], 18) }}</span>
-                                    @endif
                                 </div>
+                                @if (!empty($filmItem['karakter']))
+                                    <div class="text-sand mt-1" style="font-size:.76rem; line-height:1.35; word-break:break-word;">
+                                        sebagai {{ $filmItem['karakter'] }}
+                                    </div>
+                                @endif
                             </div>
                         </div>
                     </a>

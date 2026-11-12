@@ -74,7 +74,7 @@ class FilmController extends Controller
             }
         }
         if ($genre !== '') {
-            $filters[] = 'FILTER(CONTAINS(LCASE(?genreLabel), LCASE("'.$this->escape($genre).'")))';
+            $filters[] = 'FILTER EXISTS { ?film schema:genre ?fg . ?fg rdfs:label ?fgLabel . FILTER(CONTAINS(LCASE(?fgLabel), LCASE("'.$this->escape($genre).'"))) }';
         }
         if ($tahun !== '') {
             $filters[] = 'FILTER(YEAR(?tahun) = '.intval($tahun).')';
@@ -83,7 +83,7 @@ class FilmController extends Controller
             $filters[] = 'FILTER(?ratedVal = "'.$this->escape($rated).'")';
         }
         if ($negara !== '') {
-            $filters[] = 'FILTER(CONTAINS(LCASE(?negaraLabel), LCASE("'.$this->escape($negara).'")))';
+            $filters[] = 'FILTER EXISTS { ?film schema:countryOfOrigin ?fnRes . ?fnRes schema:name ?fnLabel . FILTER(CONTAINS(LCASE(?fnLabel), LCASE("'.$this->escape($negara).'"))) }';
         }
 
         $filterClause = implode("\n                ", $filters);
@@ -92,7 +92,7 @@ class FilmController extends Controller
             'title_desc' => 'ORDER BY DESC(?nama)',
             'year_desc' => 'ORDER BY DESC(?tahun) ?nama',
             'year_asc' => 'ORDER BY ASC(?tahun) ?nama',
-            'rating_desc' => 'ORDER BY DESC(?ratingVal) ?nama',
+            'rating_desc' => 'ORDER BY DESC(?rating) ?nama',
             default => 'ORDER BY ?nama',
         };
 
@@ -100,13 +100,13 @@ class FilmController extends Controller
             PREFIX schema: <https://schema.org/>
             PREFIX rdfs: <http://www.w3.org/2000/01/rdf-schema#>
             PREFIX film: <http://pilem.org/cinegraph/ontology#>
-            SELECT ?film ?nama ?tahun ?tmdbId (SAMPLE(?posterRdf) AS ?posterRdf) (SAMPLE(?ratingVal) AS ?rating) (SAMPLE(?ratedVal) AS ?rated)
+            SELECT ?film ?nama ?tahun ?tmdbId (SAMPLE(?posterRaw) AS ?posterRdf) (SAMPLE(?ratingVal) AS ?rating) (SAMPLE(?ratedVal) AS ?rated)
                    (GROUP_CONCAT(DISTINCT ?genreLabel; separator=", ") AS ?genres)
                    (GROUP_CONCAT(DISTINCT ?negaraLabel; separator=", ") AS ?negaraAsal) WHERE {
                 ?film a schema:Movie ;
                       schema:name ?nama ;
                       schema:datePublished ?tahun .
-                OPTIONAL { ?film schema:image ?posterRdf . }
+                OPTIONAL { ?film schema:image ?posterRaw . }
                 OPTIONAL { ?film film:tmdbId ?tmdbId . }
                 OPTIONAL { ?film film:tmdbRating ?ratingVal . }
                 OPTIONAL { ?film film:rated ?ratedVal . }
@@ -223,7 +223,7 @@ class FilmController extends Controller
                 }
             }
             if ($genre !== '') {
-                $filters[] = 'FILTER(CONTAINS(LCASE(?genreLabel), LCASE("'.$this->escape($genre).'")))';
+                $filters[] = 'FILTER EXISTS { ?film schema:genre ?fg . ?fg rdfs:label ?fgLabel . FILTER(CONTAINS(LCASE(?fgLabel), LCASE("'.$this->escape($genre).'"))) }';
             }
             if ($tahun !== '') {
                 $filters[] = 'FILTER(YEAR(?tahun) = '.intval($tahun).')';
@@ -232,7 +232,7 @@ class FilmController extends Controller
                 $filters[] = 'FILTER(?ratedVal = "'.$this->escape($rated).'")';
             }
             if ($negara !== '') {
-                $filters[] = 'FILTER(CONTAINS(LCASE(?negaraLabel), LCASE("'.$this->escape($negara).'")))';
+                $filters[] = 'FILTER EXISTS { ?film schema:countryOfOrigin ?fnRes . ?fnRes schema:name ?fnLabel . FILTER(CONTAINS(LCASE(?fnLabel), LCASE("'.$this->escape($negara).'"))) }';
             }
 
             $filterClause = implode("\n                ", $filters);
@@ -241,7 +241,7 @@ class FilmController extends Controller
                 'title_desc' => 'ORDER BY DESC(?nama)',
                 'year_desc' => 'ORDER BY DESC(?tahun) ?nama',
                 'year_asc' => 'ORDER BY ASC(?tahun) ?nama',
-                'rating_desc' => 'ORDER BY DESC(?ratingVal) ?nama',
+                'rating_desc' => 'ORDER BY DESC(?rating) ?nama',
                 default => 'ORDER BY ?nama',
             };
 
@@ -249,13 +249,13 @@ class FilmController extends Controller
                 PREFIX schema: <https://schema.org/>
                 PREFIX rdfs: <http://www.w3.org/2000/01/rdf-schema#>
                 PREFIX film: <http://pilem.org/cinegraph/ontology#>
-                SELECT ?film ?nama ?tahun ?tmdbId (SAMPLE(?posterRdf) AS ?posterRdf) (SAMPLE(?ratingVal) AS ?rating) (SAMPLE(?ratedVal) AS ?rated)
+                SELECT ?film ?nama ?tahun ?tmdbId (SAMPLE(?posterRaw) AS ?posterRdf) (SAMPLE(?ratingVal) AS ?rating) (SAMPLE(?ratedVal) AS ?rated)
                        (GROUP_CONCAT(DISTINCT ?genreLabel; separator=", ") AS ?genres)
                        (GROUP_CONCAT(DISTINCT ?negaraLabel; separator=", ") AS ?negaraAsal) WHERE {
                     ?film a schema:Movie ;
                           schema:name ?nama ;
                           schema:datePublished ?tahun .
-                    OPTIONAL { ?film schema:image ?posterRdf . }
+                    OPTIONAL { ?film schema:image ?posterRaw . }
                     OPTIONAL { ?film film:tmdbId ?tmdbId . }
                     OPTIONAL { ?film film:tmdbRating ?ratingVal . }
                     OPTIONAL { ?film film:rated ?ratedVal . }
@@ -507,7 +507,7 @@ class FilmController extends Controller
             PREFIX rdfs: <http://www.w3.org/2000/01/rdf-schema#>
             PREFIX film: <http://pilem.org/cinegraph/ontology#>
             SELECT ?film ?nama ?tahun ?rating ?durasi ?tmdbId
-                   (SAMPLE(?poster) AS ?poster)
+                   (SAMPLE(?posterRdf) AS ?poster)
                    (SAMPLE(?sutradaraNama) AS ?sutradara)
                    (GROUP_CONCAT(DISTINCT ?genreLabel; separator=", ") AS ?genres) WHERE {
                 ?film a schema:Movie ;
@@ -634,7 +634,7 @@ class FilmController extends Controller
         $query = <<<SPARQL
             PREFIX schema: <https://schema.org/>
             PREFIX film: <http://pilem.org/cinegraph/ontology#>
-            SELECT ?person ?nama ?peran (SAMPLE(?foto) AS ?foto) (GROUP_CONCAT(DISTINCT ?charName; separator=", ") AS ?karakter) WHERE {
+            SELECT ?person ?nama ?peran (SAMPLE(?fotoRaw) AS ?foto) (GROUP_CONCAT(DISTINCT ?charName; separator=", ") AS ?karakter) WHERE {
                 {
                     <$filmUri> schema:director ?person .
                     BIND("Sutradara" AS ?peran)
@@ -650,7 +650,7 @@ class FilmController extends Controller
                     }
                 }
                 ?person schema:name ?nama .
-                OPTIONAL { ?person schema:image ?foto . }
+                OPTIONAL { ?person schema:image ?fotoRaw . }
             }
             GROUP BY ?person ?nama ?peran
             ORDER BY (?peran = "Aktor") ?nama
@@ -734,7 +734,7 @@ class FilmController extends Controller
         $query = <<<SPARQL
             PREFIX schema: <https://schema.org/>
             PREFIX film: <http://pilem.org/cinegraph/ontology#>
-            SELECT ?film ?namaFilm ?tahun ?peran (SAMPLE(?posterRdf) AS ?posterRdf) (GROUP_CONCAT(DISTINCT ?charName; separator=", ") AS ?karakter) WHERE {
+            SELECT ?film ?namaFilm ?tahun ?peran (SAMPLE(?posterRaw) AS ?posterRdf) (GROUP_CONCAT(DISTINCT ?charName; separator=", ") AS ?karakter) WHERE {
                 {
                     ?film schema:director <$personUri> .
                     BIND("Sutradara" AS ?peran)
@@ -751,7 +751,7 @@ class FilmController extends Controller
                 }
                 ?film schema:name ?namaFilm .
                 OPTIONAL { ?film schema:datePublished ?tahun . }
-                OPTIONAL { ?film schema:image ?posterRdf . }
+                OPTIONAL { ?film schema:image ?posterRaw . }
             }
             GROUP BY ?film ?namaFilm ?tahun ?peran
             ORDER BY (?peran = "Aktor") ?namaFilm
