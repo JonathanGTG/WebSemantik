@@ -1,40 +1,52 @@
 <?php
 
-if (!function_exists('pilemFormatDurasi')) {
+use Illuminate\Support\Facades\Cache;
+
+if (! function_exists('pilemFormatDurasi')) {
     /**
      * Konversi ISO 8601 duration (e.g. "PT2H30M") ke string human-readable (e.g. "2h 30m").
      */
     function pilemFormatDurasi(?string $iso): ?string
     {
-        if (!$iso) return null;
+        if (! $iso) {
+            return null;
+        }
         preg_match('/PT(?:(\d+)H)?(?:(\d+)M)?/', $iso, $m);
-        $h   = $m[1] ?? 0;
+        $h = $m[1] ?? 0;
         $mnt = $m[2] ?? 0;
         $parts = [];
-        if ($h)   $parts[] = $h . 'h';
-        if ($mnt) $parts[] = $mnt . 'm';
+        if ($h) {
+            $parts[] = $h.'h';
+        }
+        if ($mnt) {
+            $parts[] = $mnt.'m';
+        }
+
         return $parts ? implode(' ', $parts) : null;
     }
 }
 
-if (!function_exists('pilemStudioBadge')) {
+if (! function_exists('pilemStudioBadge')) {
     /**
      * Ambil label badge singkat dari nama studio (CSV pertama).
      */
     function pilemStudioBadge(?string $studioCsv): ?string
     {
-        if (!$studioCsv) return null;
+        if (! $studioCsv) {
+            return null;
+        }
         $first = trim(explode(',', $studioCsv)[0]);
         $map = [
-            'Marvel Studios'      => 'MCU',
-            'Pixar'               => 'PIXAR',
-            'Walt Disney Pictures'=> 'DISNEY',
+            'Marvel Studios' => 'MCU',
+            'Pixar' => 'PIXAR',
+            'Walt Disney Pictures' => 'DISNEY',
         ];
+
         return $map[$first] ?? strtoupper($first);
     }
 }
 
-if (!function_exists('pilemFilmIndex')) {
+if (! function_exists('pilemFilmIndex')) {
     /**
      * Index ringan semua film dari dataset/film.ttl: id => [judul, poster, studio].
      * Poster diambil dari triple `schema:image` yang SUDAH ada di film.ttl
@@ -52,7 +64,7 @@ if (!function_exists('pilemFilmIndex')) {
         }
 
         $path = base_path('dataset/film.ttl');
-        if (!is_file($path)) {
+        if (! is_file($path)) {
             return $memo = [];
         }
 
@@ -72,7 +84,7 @@ if (!function_exists('pilemFilmIndex')) {
                     $poster = $m[1];
                 }
                 $index[$b[1]] = [
-                    'title'  => $title,
+                    'title' => $title,
                     'poster' => $poster,
                     'studio' => pilemGuessStudio($title),
                 ];
@@ -82,11 +94,11 @@ if (!function_exists('pilemFilmIndex')) {
         };
 
         try {
-            $memo = \Illuminate\Support\Facades\Cache::rememberForever(
+            $memo = Cache::rememberForever(
                 'pilem.film_index.'.filemtime($path),
                 $build
             );
-        } catch (\Throwable) {
+        } catch (Throwable) {
             $memo = $build();
         }
 
@@ -94,7 +106,7 @@ if (!function_exists('pilemFilmIndex')) {
     }
 }
 
-if (!function_exists('pilemPoster')) {
+if (! function_exists('pilemPoster')) {
     /**
      * URL poster untuk satu film: pakai nilai dari controller kalau ada,
      * kalau kosong ambil dari film.ttl.
@@ -109,14 +121,14 @@ if (!function_exists('pilemPoster')) {
     }
 }
 
-if (!function_exists('pilemGuessStudio')) {
+if (! function_exists('pilemGuessStudio')) {
     /**
      * Tebak studio dari judul (Marvel / Pixar / Walt Disney Pictures).
      * Heuristik yang sama dengan command cinegraph:sync-posters.
      */
     function pilemGuessStudio(?string $title): ?string
     {
-        if (!$title) {
+        if (! $title) {
             return null;
         }
         $lower = mb_strtolower($title);
@@ -147,7 +159,7 @@ if (!function_exists('pilemGuessStudio')) {
     }
 }
 
-if (!function_exists('pilemFilmStudio')) {
+if (! function_exists('pilemFilmStudio')) {
     /**
      * Studio untuk satu film: dari controller kalau ada, kalau tidak tebak dari judul.
      */
@@ -157,7 +169,7 @@ if (!function_exists('pilemFilmStudio')) {
     }
 }
 
-if (!function_exists('pilemYouTubeThumb')) {
+if (! function_exists('pilemYouTubeThumb')) {
     function pilemYouTubeThumb(?string $key): ?string
     {
         return $key ? "https://i.ytimg.com/vi/{$key}/hqdefault.jpg" : null;

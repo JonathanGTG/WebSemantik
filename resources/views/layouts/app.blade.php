@@ -109,6 +109,18 @@
             box-shadow: 0 16px 40px rgba(0, 0, 0, .55);
             animation: fadeInDown .2s ease-out;
         }
+        .filter-inline-card {
+            background: rgba(14, 25, 53, 0.7);
+            border: 1px solid var(--line);
+            border-radius: 16px;
+            padding: 1.25rem 1.5rem;
+            box-shadow: 0 8px 30px rgba(0, 0, 0, 0.3);
+            margin-bottom: 2rem;
+            backdrop-filter: blur(12px);
+        }
+        .filter-inline-card:hover {
+            border-color: rgba(247, 185, 40, 0.3);
+        }
         @keyframes fadeInDown {
             from { opacity: 0; transform: translateY(-8px); }
             to { opacity: 1; transform: translateY(0); }
@@ -314,13 +326,13 @@
 <nav class="navbar-pilem py-3">
     <div class="container d-flex align-items-center justify-content-between flex-wrap gap-3">
         <div class="d-flex align-items-center gap-2">
-            <button type="button" class="btn-filter-nav {{ request()->anyFilled(['huruf','genre','tahun','rated','sort']) ? 'active' : '' }}" id="btn-toggle-filter" aria-label="Buka Filter Film" title="Filter & Urutkan Film">
+            <button type="button" class="btn-filter-nav {{ request()->anyFilled(['huruf','genre','tahun','rated','sort','rating','urutan_tahun','from_filter']) ? 'active' : '' }}" id="btn-toggle-filter" aria-label="Buka Filter Film" title="Filter & Urutkan Film">
                 <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round">
                     <line x1="4" y1="7" x2="20" y2="7"></line>
                     <line x1="4" y1="12" x2="20" y2="12"></line>
                     <line x1="4" y1="17" x2="20" y2="17"></line>
                 </svg>
-                @if (request()->anyFilled(['huruf','genre','tahun','rated','sort']))
+                @if (request()->anyFilled(['huruf','genre','tahun','rated','sort','rating','urutan_tahun','from_filter']))
                     <span class="filter-indicator" title="Filter aktif"></span>
                 @endif
             </button>
@@ -328,7 +340,7 @@
         </div>
 
         <div class="nav-group">
-            <a href="{{ route('home') }}" class="nav-pill {{ request()->routeIs('home') && !request()->anyFilled(['q','genre','tahun','negara','rated','huruf','sort']) ? 'active' : '' }}">Now Playing</a>
+            <a href="{{ route('home') }}" class="nav-pill {{ request()->routeIs('home') && !request()->anyFilled(['q','genre','tahun','negara','rated','huruf','sort','rating','urutan_tahun']) ? 'active' : '' }}">Now Playing</a>
             <a href="{{ route('film.statistik') }}" class="nav-pill {{ request()->routeIs('film.statistik') ? 'active' : '' }}">Statistik</a>
             <a href="{{ route('home') }}#ask-pilmy" class="nav-pill accent">Ask Pilmy</a>
         </div>
@@ -341,131 +353,9 @@
     </div>
 
     {{-- ======================= EXPANDABLE FILTER NAVBAR ======================= --}}
-    <div id="filter-navbar-panel" class="filter-navbar-panel mt-3 {{ request()->anyFilled(['huruf','genre','tahun','rated','sort']) ? 'show' : '' }}"
-         style="display: {{ request()->anyFilled(['huruf','genre','tahun','rated','sort']) ? 'block' : 'none' }};">
+    <div id="filter-navbar-panel" class="filter-navbar-panel mt-3" style="display: none;">
         <div class="container py-3">
-            <form action="{{ route('home') }}" method="GET" id="filter-nav-form">
-                {{-- Header Filter --}}
-                <div class="d-flex justify-content-between align-items-center mb-3 flex-wrap gap-2">
-                    <div class="d-flex align-items-center gap-2">
-                        <span class="fw-bold small text-sand" style="letter-spacing: .06em; text-transform: uppercase;">
-                             Filter &amp; Urutkan Katalog Film
-                        </span>
-                        @if (request()->anyFilled(['q','huruf','genre','tahun','rated','sort']))
-                            <span class="badge border border-info border-opacity-50 text-cyan bg-info bg-opacity-10" style="font-size: .68rem;">
-                                Filter Aktif
-                            </span>
-                        @endif
-                    </div>
-                    <div class="d-flex align-items-center gap-2">
-                        @if (request()->anyFilled(['q','huruf','genre','tahun','rated','sort']))
-                            <a href="{{ route('home') }}" class="btn btn-sm btn-outline-pilem text-danger-emphasis py-1 px-2" style="font-size: .75rem;">
-                                Reset Filter
-                            </a>
-                        @endif
-                        <button type="button" class="btn btn-sm btn-outline-pilem py-1 px-2" id="btn-close-filter" aria-label="Tutup Filter" style="font-size: .75rem;">
-                            Tutup
-                        </button>
-                    </div>
-                </div>
-
-                {{-- Filter berdasarkan Judul A-Z (Alphabet Bar) --}}
-                <div class="filter-az-section mb-3">
-                    <div class="d-flex align-items-center justify-content-between mb-1">
-                        <label class="form-label mb-0 small text-dim fw-semibold" style="font-size: .75rem;">
-                            Filter berdasarkan Judul A-Z:
-                        </label>
-                        @if (request('huruf'))
-                            <span class="small text-sand" style="font-size: .72rem;">
-                                Awalan: <strong>{{ request('huruf') }}</strong>
-                            </span>
-                        @endif
-                    </div>
-                    <div class="letter-bar d-flex flex-wrap gap-1">
-                        <input type="hidden" name="huruf" id="input-huruf" value="{{ request('huruf') }}">
-                        <button type="button" class="letter-btn {{ !request('huruf') ? 'active' : '' }}" onclick="selectLetter('')" title="Semua Huruf">Semua</button>
-                        @foreach (range('A', 'Z') as $char)
-                            <button type="button" class="letter-btn {{ request('huruf') === $char ? 'active' : '' }}" onclick="selectLetter('{{ $char }}')" title="Judul berawalan {{ $char }}">{{ $char }}</button>
-                        @endforeach
-                        <button type="button" class="letter-btn {{ request('huruf') === '#' ? 'active' : '' }}" onclick="selectLetter('#')" title="Angka atau Simbol">#</button>
-                    </div>
-                </div>
-
-                {{-- Input Baris: Judul, Genre, Tahun, Rating Usia, dan Urutkan --}}
-                <div class="row g-2 align-items-end">
-                    {{-- 1. Judul --}}
-                    <div class="col-12 col-md-3">
-                        <label class="form-label small text-dim mb-1" style="font-size: .74rem;">Judul Film</label>
-                        <input type="text" name="q" value="{{ request('q') }}" class="form-control form-control-sm search-input" placeholder="Cari judul..." autocomplete="off">
-                    </div>
-
-                    {{-- 2. Genre --}}
-                    <div class="col-6 col-md-2">
-                        <label class="form-label small text-dim mb-1" style="font-size: .74rem;">Genre</label>
-                        <select name="genre" class="form-select form-select-sm">
-                            <option value="">Semua Genre</option>
-                            @php
-                                $daftarGenre = [
-                                    'Action', 'Adventure', 'Animation', 'Comedy', 'Crime',
-                                    'Documentary', 'Drama', 'Family', 'Fantasy', 'History',
-                                    'Horror', 'Music', 'Mystery', 'Romance', 'Science Fiction',
-                                    'Thriller', 'TV Movie', 'Western'
-                                ];
-                            @endphp
-                            @foreach ($daftarGenre as $g)
-                                <option value="{{ $g }}" {{ strtolower(request('genre')) === strtolower($g) ? 'selected' : '' }}>
-                                    {{ $g }}
-                                </option>
-                            @endforeach
-                        </select>
-                    </div>
-
-                    {{-- 3. Tahun --}}
-                    <div class="col-6 col-md-2">
-                        <label class="form-label small text-dim mb-1" style="font-size: .74rem;">Tahun</label>
-                        <select name="tahun" class="form-select form-select-sm">
-                            <option value="">Semua Tahun</option>
-                            @for ($yr = 2026; $yr >= 1983; $yr--)
-                                <option value="{{ $yr }}" {{ request('tahun') == $yr ? 'selected' : '' }}>
-                                    {{ $yr }}
-                                </option>
-                            @endfor
-                        </select>
-                    </div>
-
-                    {{-- 4. Rating Usia --}}
-                    <div class="col-6 col-md-2">
-                        <label class="form-label small text-dim mb-1" style="font-size: .74rem;">Rating Usia</label>
-                        <select name="rated" class="form-select form-select-sm">
-                            <option value="">Semua Usia</option>
-                            <option value="G" {{ request('rated') === 'G' ? 'selected' : '' }}>G (Semua Umur)</option>
-                            <option value="PG" {{ request('rated') === 'PG' ? 'selected' : '' }}>PG (Bimbingan Orang Tua)</option>
-                            <option value="PG-13" {{ request('rated') === 'PG-13' ? 'selected' : '' }}>PG-13 (Remaja 13+)</option>
-                            <option value="R" {{ request('rated') === 'R' ? 'selected' : '' }}>R (Dewasa 17+)</option>
-                            <option value="NR" {{ request('rated') === 'NR' ? 'selected' : '' }}>NR (Not Rated)</option>
-                        </select>
-                    </div>
-
-                    {{-- 5. Urutkan --}}
-                    <div class="col-6 col-md-2">
-                        <label class="form-label small text-dim mb-1" style="font-size: .74rem;">Urutkan</label>
-                        <select name="sort" class="form-select form-select-sm">
-                            <option value="title_asc" {{ request('sort') === 'title_asc' || !request('sort') ? 'selected' : '' }}>Judul (A &rarr; Z)</option>
-                            <option value="title_desc" {{ request('sort') === 'title_desc' ? 'selected' : '' }}>Judul (Z &rarr; A)</option>
-                            <option value="year_desc" {{ request('sort') === 'year_desc' ? 'selected' : '' }}>Tahun Rilis (Terbaru)</option>
-                            <option value="year_asc" {{ request('sort') === 'year_asc' ? 'selected' : '' }}>Tahun Rilis (Terlama)</option>
-                            <option value="rating_desc" {{ request('sort') === 'rating_desc' ? 'selected' : '' }}>Rating Tertinggi</option>
-                        </select>
-                    </div>
-
-                    {{-- Tombol Submit --}}
-                    <div class="col-12 col-md-1">
-                        <button type="submit" class="btn btn-sun btn-sm w-100 py-1" style="font-weight: 700; height: 31px;">
-                            Terapkan
-                        </button>
-                    </div>
-                </div>
-            </form>
+            @include('partials.filter-form', ['isInline' => false, 'formId' => 'filter-nav-form'])
         </div>
     </div>
 </nav>
@@ -532,16 +422,20 @@ document.addEventListener('DOMContentLoaded', function() {
         });
     }
 
-    if (closeBtn && filterPanel) {
-        closeBtn.addEventListener('click', function() {
-            filterPanel.style.display = 'none';
-            if (toggleBtn) toggleBtn.classList.remove('active');
+    document.querySelectorAll('.btn-close-filter-nav, #btn-close-filter').forEach(function(btn) {
+        btn.addEventListener('click', function() {
+            if (filterPanel) {
+                filterPanel.style.display = 'none';
+                if (toggleBtn) toggleBtn.classList.remove('active');
+            }
         });
-    }
-
+    });
 
     // ---------- Dropdown kustom: ganti <select> di panel filter ----------
-    document.querySelectorAll('#filter-navbar-panel select.form-select').forEach(function(sel) {
+    document.querySelectorAll('.filter-form-panel select.form-select, #filter-navbar-panel select.form-select').forEach(function(sel) {
+        if (sel.parentNode && sel.parentNode.classList.contains('dd')) {
+            return;
+        }
         const wrap = document.createElement('div');
         wrap.className = 'dd';
         sel.parentNode.insertBefore(wrap, sel);
@@ -601,10 +495,25 @@ document.addEventListener('DOMContentLoaded', function() {
         paint();
     });
 
+    window.selectFilterLetter = function(btn, char) {
+        const form = btn ? btn.closest('form') : document.getElementById('filter-nav-form');
+        if (form) {
+            const input = form.querySelector('input[name="huruf"]');
+            if (input) {
+                input.value = char;
+                form.submit();
+            }
+        }
+    };
+
     window.selectLetter = function(char) {
-        if (inputHuruf && filterForm) {
-            inputHuruf.value = char;
-            filterForm.submit();
+        const form = document.getElementById('inpage-filter-form') || document.getElementById('filter-nav-form');
+        if (form) {
+            const input = form.querySelector('input[name="huruf"]');
+            if (input) {
+                input.value = char;
+                form.submit();
+            }
         }
     };
 });

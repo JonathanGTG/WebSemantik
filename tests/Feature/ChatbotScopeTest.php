@@ -70,4 +70,3 @@ class ChatbotScopeTest extends TestCase
             ->assertJsonPath('reply', 'Coco sangat cocok.');
     }
 }
-

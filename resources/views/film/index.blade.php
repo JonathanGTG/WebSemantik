@@ -45,7 +45,7 @@
                        placeholder="Judul film, sutradara, aktor..."
                        value="{{ $keyword }}" autocomplete="off">
             </div>
-            <div class="col-6 col-md-2">
+            <div class="col-6 col-md-3">
                 <select name="genre" class="form-select form-select-lg search-input" style="font-size: .88rem; height: calc(1.5em + 1rem + 2px);">
                     <option value="">Semua Genre</option>
                     @foreach (['Action', 'Adventure', 'Animation', 'Comedy', 'Crime', 'Documentary', 'Drama', 'Family', 'Fantasy', 'History', 'Horror', 'Music', 'Mystery', 'Romance', 'Science Fiction', 'Thriller', 'TV Movie', 'Western'] as $g)
@@ -57,7 +57,7 @@
                 <input type="number" name="tahun" class="form-control form-control-lg search-input"
                        placeholder="Tahun" value="{{ $tahun }}" min="1900" max="{{ date('Y') }}" style="font-size: .88rem;">
             </div>
-            <div class="col-6 col-md-2">
+            <div class="col-12 col-md-3">
                 <select name="rated" class="form-select form-select-lg search-input" style="font-size: .88rem; height: calc(1.5em + 1rem + 2px);">
                     <option value="">Rating Usia</option>
                     <option value="G" {{ ($rated ?? '') === 'G' ? 'selected' : '' }}>G</option>
@@ -67,13 +67,31 @@
                     <option value="NR" {{ ($rated ?? '') === 'NR' ? 'selected' : '' }}>NR</option>
                 </select>
             </div>
-            <div class="col-6 col-md-2">
+        </div>
+
+        <div class="row g-2 mb-2">
+            <div class="col-12 col-md-4">
                 <select name="sort" class="form-select form-select-lg search-input" style="font-size: .88rem; height: calc(1.5em + 1rem + 2px);">
-                    <option value="title_asc" {{ ($sort ?? '') === 'title_asc' || empty($sort) ? 'selected' : '' }}>Judul (A-Z)</option>
-                    <option value="title_desc" {{ ($sort ?? '') === 'title_desc' ? 'selected' : '' }}>Judul (Z-A)</option>
-                    <option value="year_desc" {{ ($sort ?? '') === 'year_desc' ? 'selected' : '' }}>Tahun (Terbaru)</option>
-                    <option value="year_asc" {{ ($sort ?? '') === 'year_asc' ? 'selected' : '' }}>Tahun (Terlama)</option>
-                    <option value="rating_desc" {{ ($sort ?? '') === 'rating_desc' ? 'selected' : '' }}>Rating Tertinggi</option>
+                    <option value="title_asc" {{ ($sort ?? '') === 'title_asc' || empty($sort) ? 'selected' : '' }}>Urutkan Judul (A &rarr; Z)</option>
+                    <option value="title_desc" {{ ($sort ?? '') === 'title_desc' ? 'selected' : '' }}>Urutkan Judul (Z &rarr; A)</option>
+                </select>
+            </div>
+            <div class="col-6 col-md-4">
+                <select name="rating" class="form-select form-select-lg search-input" style="font-size: .88rem; height: calc(1.5em + 1rem + 2px);">
+                    <option value="">Semua Rating</option>
+                    <option value="rating_desc" {{ ($rating ?? '') === 'rating_desc' ? 'selected' : '' }}>Rating Tertinggi</option>
+                    <option value="rating_asc" {{ ($rating ?? '') === 'rating_asc' ? 'selected' : '' }}>Rating Terendah</option>
+                    <option value="8" {{ ($rating ?? '') === '8' ? 'selected' : '' }}>Rating &ge; 8.0 (Sangat Bagus)</option>
+                    <option value="7" {{ ($rating ?? '') === '7' ? 'selected' : '' }}>Rating &ge; 7.0 (Bagus)</option>
+                    <option value="6" {{ ($rating ?? '') === '6' ? 'selected' : '' }}>Rating &ge; 6.0 (Cukup)</option>
+                    <option value="5" {{ ($rating ?? '') === '5' ? 'selected' : '' }}>Rating &ge; 5.0 (Rata-rata)</option>
+                </select>
+            </div>
+            <div class="col-6 col-md-4">
+                <select name="urutan_tahun" class="form-select form-select-lg search-input" style="font-size: .88rem; height: calc(1.5em + 1rem + 2px);">
+                    <option value="">Urutkan Tahun (Default)</option>
+                    <option value="year_desc" {{ ($urutanTahun ?? '') === 'year_desc' ? 'selected' : '' }}>Tahun Rilis (Terbaru)</option>
+                    <option value="year_asc" {{ ($urutanTahun ?? '') === 'year_asc' ? 'selected' : '' }}>Tahun Rilis (Terlama)</option>
                 </select>
             </div>
         </div>
@@ -85,7 +103,7 @@
                     <button type="button" class="filter-badge {{ strtolower($genre) === strtolower($g) ? 'active' : '' }}"
                             onclick="setGenre('{{ $g }}')">{{ $g }}</button>
                 @endforeach
-                @if ($genre || $tahun || !empty($rated) || !empty($huruf) || $keyword)
+                @if ($genre || $tahun || !empty($rated) || !empty($huruf) || $keyword || !empty($rating) || !empty($urutanTahun))
                     <a href="{{ route('film.search') }}" class="filter-badge" style="color: rgba(255,100,100,0.8); border-color: rgba(255,100,100,0.3);"> Reset filter</a>
                 @endif
             </div>
@@ -129,6 +147,18 @@
             @if ($genre) · genre: <em>{{ $genre }}</em> @endif
             @if ($tahun) · tahun: <em>{{ $tahun }}</em> @endif
             @if (!empty($rated)) · rating usia: <em>{{ $rated }}</em> @endif
+            @if (!empty($rating))
+                @if ($rating === 'rating_desc') · rating tertinggi
+                @elseif ($rating === 'rating_asc') · rating terendah
+                @else · rating &ge; {{ $rating }}.0
+                @endif
+            @endif
+            @if (!empty($urutanTahun))
+                @if ($urutanTahun === 'year_desc') · tahun (terbaru)
+                @elseif ($urutanTahun === 'year_asc') · tahun (terlama)
+                @endif
+            @endif
+            @if (!empty($sort) && $sort === 'title_desc') · judul: Z-A @endif
             @if ($negara) · negara: <em>{{ $negara }}</em> @endif
         </span>
         <div class="d-flex gap-2">

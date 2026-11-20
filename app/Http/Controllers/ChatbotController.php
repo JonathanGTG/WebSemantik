@@ -196,7 +196,7 @@ class ChatbotController extends Controller
         }
 
         $apiKey = config('services.gemini.key');
-        $model = config('services.gemini.model', 'gemini-3.5-flash');
+        $model = config('services.gemini.model', 'gemini-pro-latest');
 
         if (! $apiKey) {
             Log::warning('Chatbot: GEMINI_API_KEY belum di-set di .env');
@@ -215,36 +215,62 @@ class ChatbotController extends Controller
             'parts' => [['text' => $m['content']]],
         ], $history);
 
-        try {
-            $response = Http::withHeaders(['x-goog-api-key' => $apiKey])
-                ->timeout(20)
-                ->post("https://generativelanguage.googleapis.com/v1beta/models/{$model}:generateContent", [
-                    'systemInstruction' => ['parts' => [['text' => $systemPrompt]]],
-                    'contents' => $contents,
-                    // 2048 supaya respons panjang + blok __FILMS__ tidak terpotong.
-                    'generationConfig' => ['maxOutputTokens' => 2048, 'temperature' => 0.4],
-                ]);
-        } catch (\Throwable $e) {
-            // Timeout / koneksi gagal -- jangan biarkan UI hang (edge case PRD §9)
-            Log::warning('Chatbot: panggilan Gemini API gagal - '.$e->getMessage());
+        // Daftar model yang dicoba secara bertingkat (utamakan model yang aktif & stabil jika terjadi kuota habis / 503)
+        $modelsToTry = array_unique(array_filter([
+            $model,
+            'gemini-flash-lite-latest',
+            'gemini-3.5-flash-lite',
+            'gemini-3.5-flash',
+            'gemini-3.8-flash',
+            'gemini-flash-latest',
+            'gemini-3.1-flash-lite',
+            'gemini-pro-latest',
+            'gemini-3.1-pro-preview',
+        ]));
 
-            return response()->json([
-                'error' => 'Chatbot sedang tidak bisa merespon (timeout). Coba lagi sebentar lagi.',
-            ], 503);
+        $response = null;
+        $lastStatus = 500;
+
+        foreach ($modelsToTry as $currentModel) {
+            try {
+                $res = Http::withHeaders(['x-goog-api-key' => $apiKey])
+                    ->timeout(25)
+                    ->post("https://generativelanguage.googleapis.com/v1beta/models/{$currentModel}:generateContent", [
+                        'systemInstruction' => ['parts' => [['text' => $systemPrompt]]],
+                        'contents' => $contents,
+                        // 2048 supaya respons panjang + blok __FILMS__ tidak terpotong.
+                        'generationConfig' => ['maxOutputTokens' => 2048, 'temperature' => 0.4],
+                    ]);
+
+                if ($res->successful()) {
+                    $response = $res;
+                    break;
+                }
+
+                $lastStatus = $res->status();
+                Log::warning("Chatbot: Gemini API model {$currentModel} gagal - {$lastStatus} ".$res->body());
+
+                // Jika error otentikasi kunci (400, 401, 403), tidak perlu coba model lain
+                if (in_array($lastStatus, [400, 401, 403], true)) {
+                    $response = $res;
+                    break;
+                }
+            } catch (\Throwable $e) {
+                Log::warning("Chatbot: panggilan Gemini API model {$currentModel} gagal - ".$e->getMessage());
+            }
         }
 
-        if ($response->failed()) {
-            $status = $response->status();
-            Log::warning('Chatbot: Gemini API respon gagal - '.$status.' '.$response->body());
+        if (! $response || $response->failed()) {
+            $status = $response ? $response->status() : $lastStatus;
 
             if ($status === 429) {
-                $message = 'Chatbot sedang sibuk (kuota API tercapai). Coba lagi sebentar lagi.';
+                $message = 'Chatbot sedang sibuk (kuota API tercapai). Coba lagi sebentar lagi atau gunakan Gemini Pro API key dengan kuota aktif.';
             } elseif (in_array($status, [400, 401, 403], true)) {
                 $message = 'Chatbot belum bisa dipakai (API key ditolak Google). Hubungi admin.';
             } elseif ($status === 404) {
                 $message = 'Chatbot belum bisa dipakai (model tidak ditemukan). Hubungi admin.';
             } else {
-                $message = 'Chatbot sedang mengalami gangguan. Coba lagi sebentar lagi.';
+                $message = 'Chatbot sedang mengalami gangguan atau timeout. Coba lagi sebentar lagi.';
             }
 
             return response()->json(['error' => $message], 503);

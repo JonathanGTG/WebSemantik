@@ -38,6 +38,7 @@ return [
     'spotify' => [
         'client_id' => env('SPOTIFY_CLIENT_ID'),
         'client_secret' => env('SPOTIFY_CLIENT_SECRET'),
+        'redirect_uri' => env('SPOTIFY_REDIRECT_URI', 'http://127.0.0.1:8000/auth/spotify/callback'),
     ],
     'tmdb' => [
         'key' => env('TMDB_API_KEY_LARAVEL'),
@@ -47,7 +48,10 @@ return [
     ],
     'gemini' => [
         'key' => env('GEMINI_API_KEY'),
-        'model' => env('GEMINI_MODEL', 'gemini-3.5-flash'),
+        'model' => env('GEMINI_MODEL', 'gemini-pro-latest'),
+    ],
+    'youtube' => [
+        'key' => env('YOUTUBE_API_KEY', env('YOUTUBE_MUSIC_API_KEY')),
     ],
     'fuseki' => [
         'endpoint' => env('FUSEKI_ENDPOINT', 'http://localhost:3030/film/sparql'),
