@@ -98,8 +98,100 @@
     .mp-bar { display: flex; align-items: center; gap: .6rem; font-size: .66rem; color: var(--text-mute); font-variant-numeric: tabular-nums; margin-top: .15rem; }
     .mp-track { flex: 1; height: 4px; border-radius: 4px; background: rgba(255,255,255,.12); overflow: hidden; cursor: pointer; }
     .mp-fill { height: 100%; width: 0; background: var(--gold); }
-    .btn-spotify { background: #1db954; color: #04130a; font-weight: 700; border: none; border-radius: 999px; font-size: .78rem; padding: .5rem 1rem; text-decoration: none; display: inline-flex; align-items: center; gap: .4rem; }
-    .btn-spotify:hover { filter: brightness(1.08); color: #04130a; }
+    .btn-ytmusic { background: #ff0000; color: #ffffff; font-weight: 700; border: none; border-radius: 999px; font-size: .78rem; padding: .5rem 1rem; text-decoration: none; display: inline-flex; align-items: center; gap: .4rem; transition: filter .15s, transform .15s; }
+    .btn-ytmusic:hover { filter: brightness(1.15); color: #ffffff; transform: scale(1.02); }
+    .mp-video-dock {
+        position: fixed;
+        right: 24px;
+        bottom: 86px;
+        width: 320px;
+        background: rgba(11, 19, 38, 0.96);
+        border: 1px solid var(--line-strong);
+        border-radius: 16px;
+        overflow: hidden;
+        box-shadow: 0 16px 40px rgba(0,0,0,0.65);
+        backdrop-filter: blur(16px);
+        z-index: 1050;
+        transition: opacity .2s ease, transform .2s ease, visibility .2s;
+    }
+    .mp-video-dock.is-hidden {
+        opacity: 0;
+        visibility: hidden;
+        transform: translateY(14px) scale(0.95);
+        pointer-events: none;
+    }
+    .mp-video-dock .mp-video-header {
+        display: flex;
+        justify-content: space-between;
+        align-items: center;
+        padding: .5rem .85rem;
+        background: rgba(255,255,255,0.04);
+        border-bottom: 1px solid var(--line);
+        font-size: .75rem;
+        font-weight: 700;
+        color: var(--text);
+    }
+    .mp-video-dock .mp-video-header button {
+        background: none;
+        border: none;
+        color: var(--text-dim);
+        font-size: 1.25rem;
+        line-height: 1;
+        cursor: pointer;
+        padding: 0 .2rem;
+    }
+    .mp-video-dock .mp-video-header button:hover {
+        color: #fff;
+    }
+    .mp-video-screen {
+        width: 100%;
+        height: 180px;
+        background: #000;
+    }
+    .mp-badge-full {
+        font-size: .68rem;
+        font-weight: 700;
+        color: #ff4d4f;
+        background: rgba(255, 77, 79, 0.12);
+        border: 1px solid rgba(255, 77, 79, 0.3);
+        padding: .2rem .55rem;
+        border-radius: 999px;
+        display: inline-flex;
+        align-items: center;
+        gap: .3rem;
+    }
+    .btn-toggle-video {
+        background: rgba(255,255,255,.08);
+        color: var(--text);
+        border: 1px solid var(--line-strong);
+        border-radius: 999px;
+        font-size: .75rem;
+        font-weight: 600;
+        padding: .45rem .85rem;
+        display: inline-flex;
+        align-items: center;
+        gap: .4rem;
+        cursor: pointer;
+        transition: background .15s, border-color .15s;
+    }
+    .btn-toggle-video:hover {
+        background: rgba(255,255,255,.14);
+        border-color: var(--cyan);
+        color: #fff;
+    }
+    .btn-toggle-video.active {
+        background: rgba(39, 196, 232, 0.2);
+        border-color: var(--cyan);
+        color: var(--cyan);
+        font-weight: 700;
+    }
+    .mp-art.is-spinning {
+        animation: spinMpVinyl 4s linear infinite;
+    }
+    @keyframes spinMpVinyl {
+        from { transform: rotate(0deg); }
+        to { transform: rotate(360deg); }
+    }
     @media (max-width: 767.98px) {
         .mini-player { grid-template-columns: 1fr auto; }
         .mini-player .mp-center { grid-column: 1 / -1; order: 3; }
@@ -120,25 +212,39 @@
 
 {{-- ======================= SEARCH MODE ======================= --}}
 @if ($isSearchMode)
-    <div class="mb-4">
-        <div class="eyebrow mb-1">Pencarian</div>
-        <h1 class="fw-bold mb-3" style="font-size:2rem;">Cari film</h1>
-        <form method="GET" action="{{ route('home') }}" id="home-search-form" class="row g-2 mb-3">
-            <div class="col-12 col-md-5">
-                <input type="text" name="q" class="form-control search-input form-control-lg" style="font-size:.95rem;" placeholder="Judul film, sutradara, aktor..." value="{{ $keyword }}" autocomplete="off">
-            </div>
-            <div class="col-4 col-md-2"><input type="text" name="genre" class="form-control search-input form-control-lg" style="font-size:.95rem;" placeholder="Genre" value="{{ $genre }}"></div>
-            <div class="col-4 col-md-2"><input type="number" name="tahun" class="form-control search-input form-control-lg" style="font-size:.95rem;" placeholder="Tahun" value="{{ $tahun }}" min="1900" max="{{ date('Y') }}"></div>
-            <div class="col-4 col-md-2"><input type="text" name="negara" class="form-control search-input form-control-lg" style="font-size:.95rem;" placeholder="Negara" value="{{ $negara }}"></div>
-            <div class="col-12 col-md-1"><button type="submit" class="btn btn-sun w-100 h-100">Cari</button></div>
-        </form>
-        <div class="d-flex flex-wrap gap-2">
-            @foreach (['Action', 'Adventure', 'Animation', 'Comedy', 'Drama', 'Science Fiction', 'Family'] as $g)
-                <button type="button" class="filter-badge {{ strtolower($genre) === strtolower($g) ? 'active' : '' }}" onclick="setHomeGenre('{{ $g }}')">{{ $g }}</button>
-            @endforeach
-            <a href="{{ route('home') }}" class="filter-badge" style="color:#ff9a9a; border-color:rgba(255,120,120,.35);">Hapus filter</a>
+    @php
+        $isFromFilter = request()->filled('from_filter') || request()->anyFilled(['huruf', 'genre', 'tahun', 'rated', 'sort', 'rating', 'urutan_tahun']);
+    @endphp
+
+    @if ($isFromFilter)
+        {{-- Filter Inline persis sama di atas judul hasil filter (bukan pop up) --}}
+        @include('partials.filter-form', ['isInline' => true, 'formId' => 'inpage-filter-form'])
+
+        <div class="mb-4">
+            <div class="eyebrow mb-1">Katalog &amp; Filter</div>
+            <h1 class="fw-bold mb-2" style="font-size:2rem;">Hasil Filter Film</h1>
         </div>
-    </div>
+    @else
+        <div class="mb-4">
+            <div class="eyebrow mb-1">Pencarian</div>
+            <h1 class="fw-bold mb-3" style="font-size:2rem;">Cari film</h1>
+            <form method="GET" action="{{ route('home') }}" id="home-search-form" class="row g-2 mb-3">
+                <div class="col-12 col-md-5">
+                    <input type="text" name="q" class="form-control search-input form-control-lg" style="font-size:.95rem;" placeholder="Judul film, sutradara, aktor..." value="{{ $keyword }}" autocomplete="off">
+                </div>
+                <div class="col-4 col-md-2"><input type="text" name="genre" class="form-control search-input form-control-lg" style="font-size:.95rem;" placeholder="Genre" value="{{ $genre }}"></div>
+                <div class="col-4 col-md-2"><input type="number" name="tahun" class="form-control search-input form-control-lg" style="font-size:.95rem;" placeholder="Tahun" value="{{ $tahun }}" min="1900" max="{{ date('Y') }}"></div>
+                <div class="col-4 col-md-2"><input type="text" name="negara" class="form-control search-input form-control-lg" style="font-size:.95rem;" placeholder="Negara" value="{{ $negara }}"></div>
+                <div class="col-12 col-md-1"><button type="submit" class="btn btn-sun w-100 h-100">Cari</button></div>
+            </form>
+            <div class="d-flex flex-wrap gap-2">
+                @foreach (['Action', 'Adventure', 'Animation', 'Comedy', 'Drama', 'Science Fiction', 'Family'] as $g)
+                    <button type="button" class="filter-badge {{ strtolower($genre) === strtolower($g) ? 'active' : '' }}" onclick="setHomeGenre('{{ $g }}')">{{ $g }}</button>
+                @endforeach
+                <a href="{{ route('home') }}" class="filter-badge" style="color:#ff9a9a; border-color:rgba(255,120,120,.35);">Hapus filter</a>
+            </div>
+        </div>
+    @endif
 
     @if ($errors->any())
         <div class="alert alert-danger">{{ $errors->first('sparql') }}</div>
@@ -152,6 +258,18 @@
             @if ($genre) &middot; genre {{ $genre }} @endif
             @if ($tahun) &middot; tahun {{ $tahun }} @endif
             @if (!empty($rated)) &middot; usia {{ $rated }} @endif
+            @if (!empty($rating))
+                @if ($rating === 'rating_desc') &middot; rating tertinggi
+                @elseif ($rating === 'rating_asc') &middot; rating terendah
+                @else &middot; rating &ge; {{ $rating }}.0
+                @endif
+            @endif
+            @if (!empty($urutanTahun))
+                @if ($urutanTahun === 'year_desc') &middot; rilis terbaru
+                @elseif ($urutanTahun === 'year_asc') &middot; rilis terlama
+                @endif
+            @endif
+            @if (!empty($sort) && $sort === 'title_desc') &middot; judul (Z &rarr; A) @endif
             @if ($negara) &middot; negara {{ $negara }} @endif
         </span>
         <div class="seg">
@@ -228,8 +346,15 @@
     $prevFilm   = ($featIndex !== false && $featIndex > 0) ? $nowPlaying[$featIndex - 1] : null;
     $nextFilm   = ($featIndex !== false && $featIndex < count($nowPlaying) - 1) ? $nowPlaying[$featIndex + 1] : null;
     $featureUrl = fn ($id, $hash = '') => route('home', ['featured' => $id]).$hash;
-    $tracks     = collect($feat['externalData']['soundtrack'] ?? [])->filter(fn ($t) => !empty($t['previewUrl']))->take(8)->values();
-    $trackData  = $tracks->map(fn ($t) => ['title' => $t['trackName'] ?? '', 'artist' => $t['artistName'] ?? '', 'art' => $t['artworkUrl100'] ?? '', 'src' => $t['previewUrl']])->values()->all();
+    $tracks     = collect($feat['externalData']['soundtrack'] ?? [])->filter(fn ($t) => !empty($t['previewUrl']) || !empty($t['videoId']) || !empty($t['trackName']))->take(8)->values();
+    $trackData  = $tracks->map(fn ($t) => [
+        'title' => $t['trackName'] ?? '',
+        'artist' => $t['artistName'] ?? '',
+        'art' => $t['artworkUrl100'] ?? '',
+        'src' => $t['previewUrl'] ?? '',
+        'ytMusicUrl' => $t['youtubeMusicUrl'] ?? '',
+        'videoId' => $t['videoId'] ?? '',
+    ])->values()->all();
 @endphp
 
 {{-- ---------- HERO ---------- --}}
@@ -560,6 +685,20 @@
 {{-- ======================= MINI PLAYER OST ======================= --}}
 @if (!$isSearchMode && !empty($tracks) && $tracks->isNotEmpty())
 @push('player')
+<!-- Docked Video Screen (Bisa Ditampilkan atau Diminimize) -->
+<div id="mp-video-dock" class="mp-video-dock is-hidden" role="region" aria-label="Layar video musik">
+    <div class="mp-video-header">
+        <div class="d-flex align-items-center gap-1 min-w-0">
+            <span class="mp-badge-full">Full Durasi</span>
+            <span id="mp-video-dock-title" class="text-truncate" style="max-width: 170px;">Video Musik</span>
+        </div>
+        <button type="button" id="mp-video-dock-close" aria-label="Sembunyikan Video">&times;</button>
+    </div>
+    <div class="mp-video-screen">
+        <div id="mp-yt-iframe-slot"></div>
+    </div>
+</div>
+
 <div class="mini-player" id="mini-player" role="region" aria-label="Pemutar soundtrack">
     <div class="d-flex align-items-center gap-3 min-w-0" style="min-width:0;">
         <img class="mp-art" id="mp-art" alt="" src="{{ $tracks[0]['artworkUrl100'] ?? '' }}">
@@ -577,10 +716,17 @@
             </button>
             <button type="button" id="mp-next" aria-label="Lagu berikutnya"><svg width="18" height="18" viewBox="0 0 24 24" fill="currentColor"><path d="M16 6h2v12h-2zM6 18l8.5-6L6 6z"/></svg></button>
         </div>
-        <div class="mp-bar"><span id="mp-cur">0:00</span><div class="mp-track" id="mp-track"><div class="mp-fill" id="mp-fill"></div></div><span id="mp-dur">0:30</span></div>
+        <div class="mp-bar"><span id="mp-cur">0:00</span><div class="mp-track" id="mp-track"><div class="mp-fill" id="mp-fill"></div></div><span id="mp-dur">Full Durasi</span></div>
     </div>
-    <div class="mp-right">
-        <a class="btn-spotify" id="mp-spotify" target="_blank" rel="noopener" href="https://open.spotify.com/search/{{ urlencode(($tracks[0]['trackName'] ?? '').' '.($tracks[0]['artistName'] ?? '')) }}">Buka di Spotify</a>
+    <div class="mp-right d-flex align-items-center gap-2">
+        <button type="button" class="btn-toggle-video" id="mp-toggle-video" aria-label="Tonton video musik">
+            <svg width="15" height="15" viewBox="0 0 24 24" fill="currentColor"><path d="M21 3H3c-1.1 0-2 .9-2 2v14c0 1.1.9 2 2 2h18c1.1 0 2-.9 2-2V5c0-1.1-.9-2-2-2zm0 16H3V5h18v14zm-10-7h9v6h-9z"/></svg>
+            <span id="mp-toggle-video-text">Tonton Video</span>
+        </button>
+        <a class="btn-ytmusic" id="mp-ytmusic" target="_blank" rel="noopener" href="{{ !empty($tracks[0]['youtubeMusicUrl']) ? $tracks[0]['youtubeMusicUrl'] : 'https://music.youtube.com/search?q=' . urlencode(($tracks[0]['trackName'] ?? '').' '.($tracks[0]['artistName'] ?? '')) }}">
+            <svg width="15" height="15" viewBox="0 0 24 24" fill="currentColor"><path d="M12 2C6.48 2 2 6.48 2 12s4.48 10 10 10 10-4.48 10-10S17.52 2 12 2zm-2 14.5v-9l6 4.5-6 4.5z"/></svg>
+            Buka di YouTube Music
+        </a>
     </div>
     <audio id="mp-audio" preload="none"></audio>
 </div>
@@ -588,6 +734,7 @@
 @endif
 
 @push('scripts')
+<script src="https://www.youtube.com/iframe_api"></script>
 <script>
 (function () {
     /* ---------- Filter studio (client-side) ---------- */
@@ -608,7 +755,7 @@
         });
     });
 
-    /* ---------- Mini player OST ---------- */
+    /* ---------- Mini player OST (YouTube Full Durasi) ---------- */
     const player = document.getElementById('mini-player');
     if (player) {
         const tracks = @json($trackData ?? []);
@@ -616,44 +763,180 @@
         const audio = document.getElementById('mp-audio');
         const $ = id => document.getElementById(id);
         let idx = 0;
+        let ytPlayer = null;
+        let isYtReady = false;
+        let ytPollTimer = null;
+        let pendingPlay = false;
 
         const fmt = s => isFinite(s) ? Math.floor(s / 60) + ':' + String(Math.floor(s % 60)).padStart(2, '0') : '0:00';
-        function load(i, autoplay) {
-            idx = (i + tracks.length) % tracks.length;
-            const t = tracks[idx];
-            audio.src = t.src;
-            $('mp-title').textContent = t.title;
-            $('mp-sub').textContent = t.artist + ' · ' + film;
-            if (t.art) $('mp-art').src = t.art;
-            $('mp-spotify').href = 'https://open.spotify.com/search/' + encodeURIComponent(t.title + ' ' + t.artist);
-            $('mp-fill').style.width = '0%';
-            $('mp-cur').textContent = '0:00';
-            if (autoplay) audio.play().catch(() => {});
-        }
+
         function setIcons(playing) {
             $('mp-ico-play').style.display = playing ? 'none' : '';
             $('mp-ico-pause').style.display = playing ? '' : 'none';
+            if ($('mp-art')) $('mp-art').classList.toggle('is-spinning', playing);
         }
+
+        window.onYouTubeIframeAPIReady = function () {
+            if (!tracks.length) return;
+            const firstVid = tracks[0].videoId || '';
+            ytPlayer = new YT.Player('mp-yt-iframe-slot', {
+                height: '180',
+                width: '100%',
+                videoId: firstVid,
+                playerVars: {
+                    autoplay: 0,
+                    controls: 1,
+                    modestbranding: 1,
+                    rel: 0,
+                    playsinline: 1
+                },
+                events: {
+                    'onReady': function () {
+                        isYtReady = true;
+                        if (pendingPlay) {
+                            pendingPlay = false;
+                            ytPlayer.playVideo();
+                        }
+                    },
+                    'onStateChange': function (event) {
+                        if (event.data === YT.PlayerState.PLAYING) {
+                            setIcons(true);
+                            startProgressLoop();
+                        } else if (event.data === YT.PlayerState.PAUSED) {
+                            setIcons(false);
+                            stopProgressLoop();
+                        } else if (event.data === YT.PlayerState.ENDED) {
+                            setIcons(false);
+                            stopProgressLoop();
+                            load(idx + 1, true);
+                        } else if (event.data === YT.PlayerState.BUFFERING) {
+                            $('mp-dur').textContent = 'Memuat...';
+                        }
+                    }
+                }
+            });
+        };
+
+        function startProgressLoop() {
+            stopProgressLoop();
+            ytPollTimer = setInterval(() => {
+                if (!ytPlayer || typeof ytPlayer.getCurrentTime !== 'function') return;
+                const cur = ytPlayer.getCurrentTime() || 0;
+                const dur = ytPlayer.getDuration() || 0;
+                if (dur > 0) {
+                    $('mp-fill').style.width = ((cur / dur) * 100) + '%';
+                    $('mp-cur').textContent = fmt(cur);
+                    $('mp-dur').textContent = fmt(dur);
+                }
+            }, 250);
+        }
+
+        function stopProgressLoop() {
+            if (ytPollTimer) {
+                clearInterval(ytPollTimer);
+                ytPollTimer = null;
+            }
+        }
+
+        function load(i, autoplay) {
+            idx = (i + tracks.length) % tracks.length;
+            const t = tracks[idx];
+            $('mp-title').textContent = t.title;
+            $('mp-sub').textContent = t.artist + ' · ' + film;
+            if (t.art) $('mp-art').src = t.art;
+            $('mp-ytmusic').href = t.ytMusicUrl || ('https://music.youtube.com/search?q=' + encodeURIComponent(t.title + ' ' + t.artist));
+            $('mp-fill').style.width = '0%';
+            $('mp-cur').textContent = '0:00';
+            $('mp-dur').textContent = 'Full Durasi';
+            if ($('mp-video-dock-title')) $('mp-video-dock-title').textContent = t.title;
+
+            if (t.videoId && isYtReady && ytPlayer && typeof ytPlayer.loadVideoById === 'function') {
+                if (audio) { audio.pause(); audio.removeAttribute('src'); }
+                if (autoplay) {
+                    ytPlayer.loadVideoById(t.videoId);
+                } else {
+                    ytPlayer.cueVideoById(t.videoId);
+                }
+            } else if (t.videoId && !isYtReady) {
+                if (autoplay) pendingPlay = true;
+            } else if (t.src && audio) {
+                audio.src = t.src;
+                if (autoplay) audio.play().catch(() => {});
+            }
+        }
+
         $('mp-play').addEventListener('click', function () {
-            if (!audio.src) load(0, true);
-            else if (audio.paused) audio.play().catch(() => {});
-            else audio.pause();
+            const t = tracks[idx];
+            if (t && t.videoId && isYtReady && ytPlayer && typeof ytPlayer.getPlayerState === 'function') {
+                const state = ytPlayer.getPlayerState();
+                if (state === YT.PlayerState.PLAYING) {
+                    ytPlayer.pauseVideo();
+                } else {
+                    ytPlayer.playVideo();
+                }
+            } else if (t && t.videoId && !isYtReady) {
+                pendingPlay = true;
+            } else if (audio && t && t.src) {
+                if (audio.paused) audio.play().catch(() => {});
+                else audio.pause();
+            } else {
+                load(idx, true);
+            }
         });
+
         $('mp-prev').addEventListener('click', () => load(idx - 1, true));
         $('mp-next').addEventListener('click', () => load(idx + 1, true));
+
+        $('mp-track').addEventListener('click', function (e) {
+            const t = tracks[idx];
+            const r = this.getBoundingClientRect();
+            const ratio = Math.max(0, Math.min(1, (e.clientX - r.left) / r.width));
+            if (t && t.videoId && isYtReady && ytPlayer && typeof ytPlayer.getDuration === 'function') {
+                const dur = ytPlayer.getDuration();
+                if (dur > 0) {
+                    const target = ratio * dur;
+                    ytPlayer.seekTo(target, true);
+                    $('mp-fill').style.width = (ratio * 100) + '%';
+                    $('mp-cur').textContent = fmt(target);
+                }
+            } else if (audio && audio.duration) {
+                audio.currentTime = ratio * audio.duration;
+            }
+        });
+
+        // Fallback audio events jika fallback itunes audio aktif
         audio.addEventListener('play', () => setIcons(true));
         audio.addEventListener('pause', () => setIcons(false));
         audio.addEventListener('ended', () => load(idx + 1, true));
         audio.addEventListener('timeupdate', function () {
-            if (audio.duration) $('mp-fill').style.width = (audio.currentTime / audio.duration * 100) + '%';
-            $('mp-cur').textContent = fmt(audio.currentTime);
-            $('mp-dur').textContent = fmt(audio.duration || 30);
+            if (audio.duration && (!tracks[idx]?.videoId || !isYtReady)) {
+                $('mp-fill').style.width = (audio.currentTime / audio.duration * 100) + '%';
+                $('mp-cur').textContent = fmt(audio.currentTime);
+                $('mp-dur').textContent = fmt(audio.duration);
+            }
         });
-        $('mp-track').addEventListener('click', function (e) {
-            if (!audio.duration) return;
-            const r = this.getBoundingClientRect();
-            audio.currentTime = ((e.clientX - r.left) / r.width) * audio.duration;
-        });
+
+        // Video dock toggle
+        const dock = $('mp-video-dock');
+        const toggleBtn = $('mp-toggle-video');
+        const closeBtn = $('mp-video-dock-close');
+
+        if (toggleBtn && dock) {
+            toggleBtn.addEventListener('click', function () {
+                dock.classList.toggle('is-hidden');
+                const isVisible = !dock.classList.contains('is-hidden');
+                toggleBtn.classList.toggle('active', isVisible);
+                if ($('mp-toggle-video-text')) $('mp-toggle-video-text').textContent = isVisible ? 'Mode Musik MP3' : 'Tonton Video';
+            });
+        }
+        if (closeBtn && dock) {
+            closeBtn.addEventListener('click', function () {
+                dock.classList.add('is-hidden');
+                toggleBtn.classList.remove('active');
+                if ($('mp-toggle-video-text')) $('mp-toggle-video-text').textContent = 'Tonton Video';
+            });
+        }
+
         load(0, false);
     }
 

@@ -8,6 +8,7 @@ use EasyRdf\Sparql\Client;
 use Illuminate\Http\Client\Pool;
 use Illuminate\Http\Client\Response;
 use Illuminate\Http\Request;
+use Illuminate\Support\Facades\Cache;
 use Illuminate\Support\Facades\Http;
 use Illuminate\Support\Facades\Log;
 
@@ -40,14 +41,28 @@ class FilmController extends Controller
         $tahun = trim($request->input('tahun', ''));
         $rated = trim($request->input('rated', ''));
         $sort = trim($request->input('sort', ''));
+        $rating = trim($request->input('rating', ''));
+        $urutanTahun = trim($request->input('urutan_tahun', ''));
         $negara = trim($request->input('negara', ''));
+
+        // Kompatibilitas mundur jika sort lama masih dikirim
+        if ($sort === 'year_desc' && $urutanTahun === '') {
+            $urutanTahun = 'year_desc';
+            $sort = '';
+        } elseif ($sort === 'year_asc' && $urutanTahun === '') {
+            $urutanTahun = 'year_asc';
+            $sort = '';
+        } elseif ($sort === 'rating_desc' && $rating === '') {
+            $rating = 'rating_desc';
+            $sort = '';
+        }
 
         // Validasi: kalau tidak ada satupun kriteria diisi, JANGAN kirim ke
         // SPARQL sama sekali (query tanpa FILTER = "SELECT semua film" yang
         // tidak sengaja) -- lihat PRD §9 edge case. Browsing tanpa keyword
         // sudah difasilitasi halaman utama (/), jadi /search murni untuk
         // pencarian aktif.
-        if ($keyword === '' && $huruf === '' && $genre === '' && $tahun === '' && $rated === '' && $sort === '' && $negara === '') {
+        if ($keyword === '' && $huruf === '' && $genre === '' && $tahun === '' && $rated === '' && $sort === '' && $rating === '' && $urutanTahun === '' && $negara === '') {
             return view('film.index', [
                 'films' => [],
                 'keyword' => $keyword,
@@ -56,6 +71,8 @@ class FilmController extends Controller
                 'tahun' => $tahun,
                 'rated' => $rated,
                 'sort' => $sort,
+                'rating' => $rating,
+                'urutanTahun' => $urutanTahun,
                 'negara' => $negara,
                 'belumMencari' => true,
             ]);
@@ -82,19 +99,18 @@ class FilmController extends Controller
         if ($rated !== '') {
             $filters[] = 'FILTER(?ratedVal = "'.$this->escape($rated).'")';
         }
+        if ($rating !== '') {
+            if (in_array($rating, ['8', '7', '6', '5'])) {
+                $filters[] = 'FILTER(BOUND(?ratingVal) && ?ratingVal >= '.floatval($rating).')';
+            }
+        }
         if ($negara !== '') {
             $filters[] = 'FILTER EXISTS { ?film schema:countryOfOrigin ?fnRes . ?fnRes schema:name ?fnLabel . FILTER(CONTAINS(LCASE(?fnLabel), LCASE("'.$this->escape($negara).'"))) }';
         }
 
         $filterClause = implode("\n                ", $filters);
 
-        $orderClause = match ($sort) {
-            'title_desc' => 'ORDER BY DESC(?nama)',
-            'year_desc' => 'ORDER BY DESC(?tahun) ?nama',
-            'year_asc' => 'ORDER BY ASC(?tahun) ?nama',
-            'rating_desc' => 'ORDER BY DESC(?rating) ?nama',
-            default => 'ORDER BY ?nama',
-        };
+        $orderClause = $this->buildOrderClause($keyword, $urutanTahun, $rating, $sort);
 
         $query = <<<SPARQL
             PREFIX schema: <https://schema.org/>
@@ -165,6 +181,8 @@ class FilmController extends Controller
             'tahun' => $tahun,
             'rated' => $rated,
             'sort' => $sort,
+            'rating' => $rating,
+            'urutanTahun' => $urutanTahun,
             'negara' => $negara,
         ]);
     }
@@ -198,7 +216,7 @@ class FilmController extends Controller
         $featuredId = trim($request->input('featured', ''));
 
         // ── Mode Pencarian & Filter ───────────────────────────────────────
-        // Kalau ada salah satu parameter filter (?q, ?huruf, ?genre, ?tahun, ?rated, ?sort, ?negara),
+        // Kalau ada salah satu parameter filter (?q, ?huruf, ?genre, ?tahun, ?rated, ?sort, ?rating, ?urutan_tahun, ?negara),
         // home berfungsi sebagai halaman hasil pencarian (tidak tampil hero/featured).
         $keyword = trim($request->input('q', ''));
         $huruf = strtoupper(trim($request->input('huruf', '')));
@@ -206,9 +224,23 @@ class FilmController extends Controller
         $tahun = trim($request->input('tahun', ''));
         $rated = trim($request->input('rated', ''));
         $sort = trim($request->input('sort', ''));
+        $rating = trim($request->input('rating', ''));
+        $urutanTahun = trim($request->input('urutan_tahun', ''));
         $negara = trim($request->input('negara', ''));
 
-        $isSearchMode = ($keyword !== '' || $huruf !== '' || $genre !== '' || $tahun !== '' || $rated !== '' || $sort !== '' || $negara !== '');
+        // Kompatibilitas mundur jika sort lama masih dikirim
+        if ($sort === 'year_desc' && $urutanTahun === '') {
+            $urutanTahun = 'year_desc';
+            $sort = '';
+        } elseif ($sort === 'year_asc' && $urutanTahun === '') {
+            $urutanTahun = 'year_asc';
+            $sort = '';
+        } elseif ($sort === 'rating_desc' && $rating === '') {
+            $rating = 'rating_desc';
+            $sort = '';
+        }
+
+        $isSearchMode = ($keyword !== '' || $huruf !== '' || $genre !== '' || $tahun !== '' || $rated !== '' || $sort !== '' || $rating !== '' || $urutanTahun !== '' || $negara !== '');
 
         if ($isSearchMode) {
             $filters = [];
@@ -231,19 +263,18 @@ class FilmController extends Controller
             if ($rated !== '') {
                 $filters[] = 'FILTER(?ratedVal = "'.$this->escape($rated).'")';
             }
+            if ($rating !== '') {
+                if (in_array($rating, ['8', '7', '6', '5'])) {
+                    $filters[] = 'FILTER(BOUND(?ratingVal) && ?ratingVal >= '.floatval($rating).')';
+                }
+            }
             if ($negara !== '') {
                 $filters[] = 'FILTER EXISTS { ?film schema:countryOfOrigin ?fnRes . ?fnRes schema:name ?fnLabel . FILTER(CONTAINS(LCASE(?fnLabel), LCASE("'.$this->escape($negara).'"))) }';
             }
 
             $filterClause = implode("\n                ", $filters);
 
-            $orderClause = match ($sort) {
-                'title_desc' => 'ORDER BY DESC(?nama)',
-                'year_desc' => 'ORDER BY DESC(?tahun) ?nama',
-                'year_asc' => 'ORDER BY ASC(?tahun) ?nama',
-                'rating_desc' => 'ORDER BY DESC(?rating) ?nama',
-                default => 'ORDER BY ?nama',
-            };
+            $orderClause = $this->buildOrderClause($keyword, $urutanTahun, $rating, $sort);
 
             $sparql = <<<SPARQL
                 PREFIX schema: <https://schema.org/>
@@ -313,6 +344,8 @@ class FilmController extends Controller
                 'tahun' => $tahun,
                 'rated' => $rated,
                 'sort' => $sort,
+                'rating' => $rating,
+                'urutanTahun' => $urutanTahun,
                 'negara' => $negara,
                 'category' => 'now_playing',
                 // Tetap kirim nilai default agar view tidak error
@@ -879,31 +912,73 @@ class FilmController extends Controller
     }
 
     /**
+     * Ambil atau gunakan cache token akses Spotify Web API (Client Credentials Flow).
+     */
+    protected function getSpotifyAccessToken(): ?string
+    {
+        $clientId = config('services.spotify.client_id');
+        $clientSecret = config('services.spotify.client_secret');
+        if (! $clientId || ! $clientSecret) {
+            return null;
+        }
+
+        return Cache::remember('spotify_access_token_v2', 3500, function () use ($clientId, $clientSecret) {
+            try {
+                $res = Http::withOptions(['force_ip_resolve' => 'v4'])
+                    ->timeout(4)
+                    ->asForm()
+                    ->withBasicAuth($clientId, $clientSecret)
+                    ->post('https://accounts.spotify.com/api/token', [
+                        'grant_type' => 'client_credentials',
+                    ]);
+
+                if ($res->successful()) {
+                    return $res->json('access_token');
+                }
+            } catch (\Throwable $e) {
+                Log::warning('Gagal mengambil Spotify token: '.$e->getMessage());
+            }
+
+            return null;
+        });
+    }
+
+    /**
      * Ambil data dari 4 layanan eksternal secara paralel. Kalau salah satu
      * gagal/timeout, bagian itu jadi null -- tidak menggagalkan halaman.
      */
     protected function fetchExternalServices(array $film): array
     {
         $tmdbKey = config('services.tmdb.key');
+        $youtubeKey = config('services.youtube.key');
+        $spotifyToken = $this->getSpotifyAccessToken();
 
         try {
-            $responses = Http::pool(function (Pool $pool) use ($film, $tmdbKey) {
+            $responses = Http::pool(function (Pool $pool) use ($film, $tmdbKey, $spotifyToken) {
                 $requests = [];
 
-                // OST lewat iTunes Search API -- gratis, tanpa API key/OAuth
-                // sama sekali, jadi tidak tergantung status akun developer
-                // (beda dengan Spotify yang sejak Feb 2026 mewajibkan akun
-                // Premium untuk App di Development Mode).
-                $requests[] = $pool->as('soundtrack')->get('https://itunes.apple.com/search', [
+                // Soundtrack resmi via Spotify Web API: cari lagu berdasarkan judul album resmi film
+                if ($spotifyToken) {
+                    $cleanFilmName = trim(str_replace('"', '', $film['nama']));
+                    $requests[] = $pool->as('soundtrack_spotify')
+                        ->withOptions(['force_ip_resolve' => 'v4'])
+                        ->withToken($spotifyToken)
+                        ->get('https://api.spotify.com/v1/search', [
+                            'q' => 'album:"'.$cleanFilmName.'" soundtrack',
+                            'type' => 'track',
+                            'limit' => 10,
+                        ]);
+                }
+
+                // OST fallback lewat iTunes Search API jika Spotify belum tersedia
+                $requests[] = $pool->as('soundtrack_itunes')->get('https://itunes.apple.com/search', [
                     'term' => $film['nama'],
                     'media' => 'music',
-                    'limit' => 5,
+                    'limit' => 6,
                 ]);
 
                 if ($film['tmdbId'] && $tmdbKey) {
-                    // Trailer YouTube -- TMDB videos endpoint langsung kasih
-                    // video key YouTube, tidak perlu panggil YouTube Data API
-                    // terpisah (lebih hemat kuota).
+                    // Trailer YouTube resmi dari TMDB (hanya untuk cuplikan film)
                     $requests[] = $pool->as('trailer')->get(
                         "https://api.themoviedb.org/3/movie/{$film['tmdbId']}/videos",
                         ['api_key' => $tmdbKey]
@@ -914,8 +989,7 @@ class FilmController extends Controller
                         ['api_key' => $tmdbKey]
                     );
 
-                    // Data streaming ini bersumber dari JustWatch, disajikan
-                    // lewat TMDB -- tidak perlu API key/partnership terpisah.
+                    // Data streaming JustWatch lewat TMDB
                     $requests[] = $pool->as('streaming')->get(
                         "https://api.themoviedb.org/3/movie/{$film['tmdbId']}/watch/providers",
                         ['api_key' => $tmdbKey]
@@ -939,10 +1013,160 @@ class FilmController extends Controller
 
         $isOk = static fn ($r): bool => $r instanceof Response && $r->successful();
 
+        // Olah data soundtrack: Murni menggunakan Spotify Web API
+        $soundtrack = [];
+        $soundtrackSource = 'spotify';
+        $itunesResults = $isOk($responses['soundtrack_itunes'] ?? null)
+            ? ($responses['soundtrack_itunes']->json('results') ?? [])
+            : [];
+
+        // 1. Ambil lagu dari Spotify Web API
+        if ($spotifyToken && $isOk($responses['soundtrack_spotify'] ?? null)) {
+            $spItems = $responses['soundtrack_spotify']->json('tracks.items') ?? [];
+
+            // Fallback 1: Jika kurang dari 2 lagu dengan query album soundtrack, cari berdasarkan judul album film
+            if (count($spItems) < 2) {
+                try {
+                    $cleanFilmName = trim(str_replace('"', '', $film['nama']));
+                    $fallbackRes = Http::withOptions(['force_ip_resolve' => 'v4'])
+                        ->withToken($spotifyToken)
+                        ->timeout(3)
+                        ->get('https://api.spotify.com/v1/search', [
+                            'q' => 'album:"'.$cleanFilmName.'"',
+                            'type' => 'track',
+                            'limit' => 10,
+                        ]);
+                    if ($fallbackRes->successful() && ! empty($fallbackRes->json('tracks.items'))) {
+                        $spItems = $fallbackRes->json('tracks.items');
+                    }
+                } catch (\Throwable $e) {
+                    // Abaikan fallback error
+                }
+            }
+
+            // Fallback 2: Jika masih kosong, cari kata kunci soundtrack film umum di Spotify
+            if (empty($spItems)) {
+                try {
+                    $cleanFilmName = trim(str_replace('"', '', $film['nama']));
+                    $fallbackRes2 = Http::withOptions(['force_ip_resolve' => 'v4'])
+                        ->withToken($spotifyToken)
+                        ->timeout(3)
+                        ->get('https://api.spotify.com/v1/search', [
+                            'q' => '"'.$cleanFilmName.'" soundtrack',
+                            'type' => 'track',
+                            'limit' => 10,
+                        ]);
+                    if ($fallbackRes2->successful() && ! empty($fallbackRes2->json('tracks.items'))) {
+                        $spItems = $fallbackRes2->json('tracks.items');
+                    }
+                } catch (\Throwable $e) {
+                    // Abaikan fallback error
+                }
+            }
+
+            if (! empty($spItems)) {
+                $seenTitles = [];
+                foreach ($spItems as $item) {
+                    $trackId = $item['id'] ?? null;
+                    if (! $trackId) {
+                        continue;
+                    }
+
+                    $rawTitle = $item['name'] ?? '';
+                    $cleanTitle = preg_replace('/\s*-\s*From\s+.*$/i', '', $rawTitle);
+                    $cleanTitle = preg_replace('/\s*-\s*Soundtrack\s+.*$/i', '', $cleanTitle);
+                    $cleanTitle = preg_replace('/\s*-\s*Remastered\s*.*$/i', '', $cleanTitle);
+                    $cleanTitle = preg_replace('/\s*[\(\[][^\)\]]*(from|soundtrack|ost|score|version|remastered|official|audio|video|original motion picture)[^\)\]]*[\)\]]/i', '', $cleanTitle);
+                    $cleanTitle = trim($cleanTitle, " \t\n\r\0\x0B\"'-/");
+
+                    $finalTitle = $cleanTitle ?: $rawTitle;
+                    $canonical = $this->getCanonicalTrackTitle($finalTitle);
+
+                    if (isset($seenTitles[$canonical]) || strlen($canonical) < 2) {
+                        continue;
+                    }
+
+                    $artists = implode(', ', array_column($item['artists'] ?? [], 'name'));
+
+                    // Abaikan channel/album anak-anak yang tidak relevan (misal CoComelon untuk pencarian "Coco")
+                    $albumName = $item['album']['name'] ?? '';
+                    if (str_contains(strtolower($artists), 'cocomelon') || str_contains(strtolower($albumName), 'cocomelon')) {
+                        continue;
+                    }
+
+                    // Filter relevansi: pastikan lagu terkait dengan film atau album soundtrack
+                    $words = array_filter(explode(' ', strtolower(preg_replace('/[^a-zA-Z0-9 ]/', '', $film['nama']))), fn ($w) => strlen($w) >= 4);
+                    $haystack = strtolower($rawTitle.' '.$albumName.' '.$artists);
+                    $isRelevant = empty($words);
+                    foreach ($words as $w) {
+                        if (str_contains($haystack, $w)) {
+                            $isRelevant = true;
+                            break;
+                        }
+                    }
+                    if (! $isRelevant && ! str_contains(strtolower($albumName), 'soundtrack') && ! str_contains(strtolower($albumName), 'disney')) {
+                        continue;
+                    }
+
+                    $seenTitles[$canonical] = true;
+
+                    $art = $item['album']['images'][0]['url'] ?? null;
+                    $finalArtist = $artists ?: 'Official Artist';
+
+                    $soundtrack[] = [
+                        'source' => 'spotify',
+                        'trackId' => $trackId,
+                        'trackName' => $finalTitle,
+                        'artistName' => $finalArtist,
+                        'artworkUrl100' => $art,
+                        'previewUrl' => $item['preview_url'] ?? null,
+                        'spotifyUrl' => $item['external_urls']['spotify'] ?? ('https://open.spotify.com/track/'.$trackId),
+                        'embedUrl' => 'https://open.spotify.com/embed/track/'.$trackId.'?utm_source=generator&theme=0',
+                    ];
+
+                    if (count($soundtrack) >= 6) {
+                        break;
+                    }
+                }
+            }
+        }
+
+        // 2. Fallback darurat jika Spotify kosong
+        if (empty($soundtrack) && ! empty($itunesResults)) {
+            $soundtrackSource = 'itunes';
+            $seenItunes = [];
+            foreach ($itunesResults as $it) {
+                $tName = $it['trackName'] ?? '';
+                $aName = $it['artistName'] ?? '';
+                if ($tName === '') {
+                    continue;
+                }
+
+                $canonical = $this->getCanonicalTrackTitle($tName);
+                if (isset($seenItunes[$canonical]) || strlen($canonical) < 2) {
+                    continue;
+                }
+                $seenItunes[$canonical] = true;
+
+                $soundtrack[] = [
+                    'source' => 'itunes',
+                    'trackName' => $tName,
+                    'artistName' => $aName,
+                    'artworkUrl100' => $it['artworkUrl100'] ?? null,
+                    'previewUrl' => $it['previewUrl'] ?? null,
+                    'spotifyUrl' => 'https://open.spotify.com/search/'.urlencode($tName.' '.$aName),
+                    'embedUrl' => null,
+                ];
+
+                if (count($soundtrack) >= 6) {
+                    break;
+                }
+            }
+        }
+
         return [
-            'soundtrack' => $isOk($responses['soundtrack'] ?? null)
-                ? $responses['soundtrack']->json('results')
-                : null,
+            'soundtrack' => $soundtrack,
+            'soundtrackSource' => $soundtrackSource,
             'trailerKey' => $isOk($responses['trailer'] ?? null)
                 ? $this->extractYoutubeTrailerKey($responses['trailer']->json('results') ?? [])
                 : null,
@@ -995,6 +1219,131 @@ class FilmController extends Controller
         }
 
         return $youtubeVideos[0]['key'] ?? null;
+    }
+
+    /**
+     * Dapatkan judul kanonikal lagu untuk mencegah judul ganda atau variasi duplikat
+     * (misal: "Remember Me (Lullaby)" & "Remember Me (Dúo)", atau "A Whole New World (End Title)").
+     */
+    protected function getCanonicalTrackTitle(string $rawTitle): string
+    {
+        // 1. Bersihkan semua kurung / siku di dalam atau akhir judul
+        $clean = preg_replace('/\s*[\(\[][^\)\]]*[\)\]]/u', '', $rawTitle);
+
+        // 2. Bersihkan embel-embel strip
+        $clean = preg_replace('/\s*-\s*(from|soundtrack|ost|score|reprise|version|live|remastered|single|end title|finale|instrumental|part).*$/i', '', $clean);
+
+        // 3. Trim simbol dan spasi
+        $clean = trim($clean, " \t\n\r\0\x0B\"'-/");
+
+        // 4. Huruf kecil dan alfanumerik saja
+        $canonical = preg_replace('/[^a-z0-9]/', '', strtolower($clean));
+
+        return strlen($canonical) >= 2 ? $canonical : preg_replace('/[^a-z0-9]/', '', strtolower($rawTitle));
+    }
+
+    /**
+     * Bersihkan judul lagu dan nama artis dari metadata YouTube.
+     * Mengeliminasi tag tambahan seperti (From "...", Official Audio, OST, - Topic, VEVO, dll).
+     */
+    protected function cleanTrackTitleAndArtist(string $rawTitle, string $rawChannel): array
+    {
+        $rawTitle = html_entity_decode($rawTitle, ENT_QUOTES | ENT_HTML5, 'UTF-8');
+        $rawChannel = html_entity_decode($rawChannel, ENT_QUOTES | ENT_HTML5, 'UTF-8');
+
+        // Hilangkan tag kurung seperti (From "...", Official Audio, Soundtrack Version, Lirik, dll)
+        $clean = preg_replace('/\s*[\(\[][^\)\]]*(from|soundtrack|ost|score|lyric|lyrics|official|audio|video|remastered|theme|version|mashup|edition|sub|español|lirik|terjemahan|movie|film)[^\)\]]*[\)\]]/i', '', $rawTitle);
+        $clean = preg_replace('/\s*[\(\[]\s*HD\s*[\)\]]/i', '', $clean);
+        $clean = preg_replace('/\s*-\s*(lirik|terjemahan|lyrics?).*$/i', '', $clean);
+        $clean = preg_replace('/\b(lyrics?|lirik(\s+dan\s+terjemahan)?|terjemahan|official\s+video|official\s+audio)\b/i', '', $clean);
+        $clean = preg_replace('/\s*\b(ost|soundtrack)\s+.*$/i', '', $clean);
+
+        if (str_contains($clean, ' | ')) {
+            $parts = explode(' | ', $clean, 2);
+            $clean = $parts[0];
+        }
+
+        $clean = trim($clean);
+
+        $cleanChannel = preg_replace('/\s*-\s*Topic$/i', '', $rawChannel);
+        $cleanChannel = preg_replace('/VEVO$/i', '', $cleanChannel);
+        $cleanChannel = trim($cleanChannel);
+
+        if (str_contains($clean, ' - ')) {
+            $parts = explode(' - ', $clean, 2);
+            $artist = trim($parts[0]);
+            $title = trim($parts[1]);
+        } elseif (str_contains($clean, ': ')) {
+            $parts = explode(': ', $clean, 2);
+            $artist = trim($parts[0]);
+            $title = trim($parts[1]);
+        } else {
+            $title = $clean;
+            $artist = $cleanChannel;
+        }
+
+        $title = trim($title, " \t\n\r\0\x0B\"'-");
+        $artist = trim($artist, " \t\n\r\0\x0B\"'-");
+
+        return [
+            'title' => $title ?: $rawTitle,
+            'artist' => $artist ?: 'Official Artist',
+        ];
+    }
+
+    /**
+     * Cari YouTube video ID untuk sebuah query pencarian OST/soundtrack (cache 7 hari).
+     * Mendukung YouTube Data API v3 dan fallback search scraping.
+     */
+    protected function resolveYoutubeVideoId(string $query): ?string
+    {
+        $query = trim($query);
+        if ($query === '') {
+            return null;
+        }
+
+        $cacheKey = 'yt_vid_v4_'.md5(strtolower($query));
+
+        return Cache::remember($cacheKey, 86400 * 7, function () use ($query) {
+            $youtubeKey = config('services.youtube.key');
+            if ($youtubeKey) {
+                try {
+                    $res = Http::timeout(5)->get('https://www.googleapis.com/youtube/v3/search', [
+                        'part' => 'snippet',
+                        'q' => $query,
+                        'type' => 'video',
+                        'videoCategoryId' => '10',
+                        'videoEmbeddable' => 'true',
+                        'videoSyndicated' => 'true',
+                        'maxResults' => 1,
+                        'key' => $youtubeKey,
+                    ]);
+                    if ($res->successful()) {
+                        $vid = $res->json('items.0.id.videoId');
+                        if ($vid) {
+                            return $vid;
+                        }
+                    }
+                } catch (\Throwable $e) {
+                    Log::warning('Gagal resolve videoId via YouTube API: '.$e->getMessage());
+                }
+            }
+
+            // Fallback scraping jika tanpa API key atau kuota habis
+            try {
+                $res = Http::timeout(3)->withHeaders([
+                    'User-Agent' => 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/120.0.0.0 Safari/537.36',
+                ])->get('https://www.youtube.com/results', ['search_query' => $query]);
+
+                if ($res->successful() && preg_match('/"videoId":"([a-zA-Z0-9_-]{11})"/', $res->body(), $m)) {
+                    return $m[1];
+                }
+            } catch (\Throwable $e) {
+                // Abaikan error scraping
+            }
+
+            return null;
+        });
     }
 
     /**
@@ -1059,6 +1408,50 @@ class FilmController extends Controller
     protected function escape(string $value): string
     {
         return str_replace(['"', '\\'], ['\\"', '\\\\'], $value);
+    }
+
+    /**
+     * Susun klausa ORDER BY dengan pembobotan relevansi semantik saat ada keyword.
+     */
+    protected function buildOrderClause(string $keyword, string $urutanTahun, string $rating, string $sort): string
+    {
+        if ($urutanTahun === 'year_desc') {
+            return 'ORDER BY DESC(?tahun) '.($sort === 'title_desc' ? 'DESC(?nama)' : '?nama');
+        }
+        if ($urutanTahun === 'year_asc') {
+            return 'ORDER BY ASC(?tahun) '.($sort === 'title_desc' ? 'DESC(?nama)' : '?nama');
+        }
+        if ($rating === 'rating_desc' || in_array($rating, ['8', '7', '6', '5'])) {
+            return 'ORDER BY DESC(?rating) '.($sort === 'title_desc' ? 'DESC(?nama)' : '?nama');
+        }
+        if ($rating === 'rating_asc') {
+            return 'ORDER BY ASC(?rating) '.($sort === 'title_desc' ? 'DESC(?nama)' : '?nama');
+        }
+        if ($sort === 'title_desc') {
+            return 'ORDER BY DESC(?nama)';
+        }
+
+        if ($keyword !== '') {
+            $escKeyword = $this->escape(mb_strtolower(trim($keyword)));
+            $cleanTokens = array_values(array_filter(explode(' ', preg_replace('/[^\p{L}\p{N}\s]/u', ' ', $escKeyword))));
+            $firstToken = $cleanTokens[0] ?? $escKeyword;
+
+            $relevanceOrders = [
+                'DESC(STRSTARTS(LCASE(?nama), "'.$escKeyword.'"))',
+                'DESC(CONTAINS(LCASE(?nama), "'.$escKeyword.'"))',
+            ];
+
+            if ($firstToken !== $escKeyword && $firstToken !== '') {
+                $relevanceOrders[] = 'DESC(STRSTARTS(LCASE(?nama), "'.$firstToken.'"))';
+                $relevanceOrders[] = 'DESC(CONTAINS(LCASE(?nama), "'.$firstToken.'"))';
+            }
+
+            $relevanceOrders[] = '?nama';
+
+            return 'ORDER BY '.implode(' ', $relevanceOrders);
+        }
+
+        return 'ORDER BY ?nama';
     }
 
     /**

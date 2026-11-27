@@ -52,20 +52,135 @@
     }
     .cast-role-badge.sutradara { background: rgba(39,196,232,.18); color: var(--cyan); border: 1px solid rgba(39,196,232,.35); }
     .cast-role-badge.pemeran { background: rgba(247,185,40,.15); color: var(--gold-soft); border: 1px solid rgba(247,185,40,.35); }
-    .ost-grid { display: grid; gap: .8rem; grid-template-columns: 1fr; }
-    @media (min-width: 768px) { .ost-grid { grid-template-columns: repeat(2, 1fr); } }
-    @media (min-width: 1200px) { .ost-grid.cols-3 { grid-template-columns: repeat(3, 1fr); } }
-    .ost-grid.cols-1 { grid-template-columns: 1fr; max-width: 560px; }
-    .ost-track {
-        display: flex; flex-direction: column; gap: .15rem;
-        background: rgba(255,255,255,0.05); border: 1px solid rgba(255,255,255,0.1);
-        border-radius: 12px; padding: .85rem 1rem; transition: border-color .15s;
+
+    /* ---------- Clean 2-Column Soundtrack Grid ---------- */
+    .ost-grid {
+        display: grid;
+        grid-template-columns: repeat(2, minmax(0, 1fr));
+        gap: 1rem;
     }
-    .ost-track:hover { border-color: var(--sky); }
-    .ost-title { font-size: .9rem; font-weight: 700; line-height: 1.35; }
-    .ost-artist { font-size: .8rem; color: rgba(255,255,255,.55); line-height: 1.3; }
-    .ost-player { margin-top: auto; padding-top: .7rem; }
-    audio { display: block; width: 100%; height: 36px; border-radius: 8px; color-scheme: dark; }
+    @media (max-width: 767.98px) {
+        .ost-grid {
+            grid-template-columns: minmax(0, 1fr);
+        }
+    }
+
+    .spotify-track-wrap {
+        border-radius: 14px;
+        background: rgba(255, 255, 255, 0.03);
+        border: 1px solid rgba(255, 255, 255, 0.1);
+        padding: 3px;
+        transition: transform .2s ease, border-color .2s ease, box-shadow .2s ease;
+        overflow: hidden;
+    }
+    .spotify-track-wrap:hover {
+        border-color: #1DB954;
+        box-shadow: 0 4px 18px rgba(29, 185, 84, 0.22);
+    }
+
+    .ost-track-card {
+        background: rgba(255, 255, 255, 0.04);
+        border: 1px solid rgba(255, 255, 255, 0.09);
+        border-radius: 14px;
+        padding: 1rem 1.15rem;
+        transition: border-color .2s ease, background .2s ease, box-shadow .2s ease;
+        display: flex;
+        flex-direction: column;
+        justify-content: space-between;
+        gap: .75rem;
+        min-width: 0;
+    }
+    .ost-track-card:hover {
+        border-color: rgba(29, 185, 84, 0.5);
+        background: rgba(255, 255, 255, 0.06);
+        box-shadow: 0 6px 20px rgba(29, 185, 84, 0.12);
+    }
+
+    .ost-track-title {
+        font-size: .95rem;
+        font-weight: 700;
+        line-height: 1.35;
+        color: #fff;
+        overflow: hidden;
+        text-overflow: ellipsis;
+        white-space: nowrap;
+    }
+    .ost-track-artist {
+        font-size: .8rem;
+        color: var(--gold-soft);
+        line-height: 1.3;
+        margin-top: .15rem;
+        overflow: hidden;
+        text-overflow: ellipsis;
+        white-space: nowrap;
+    }
+    .ost-spotify-frame {
+        border-radius: 10px;
+        border: 0;
+        width: 100%;
+        height: 80px;
+        display: block;
+    }
+
+    .btn-spotify-connect {
+        background: #1DB954;
+        color: #000;
+        font-weight: 700;
+        font-size: .78rem;
+        border: none;
+        border-radius: 999px;
+        padding: .4rem .95rem;
+        display: inline-flex;
+        align-items: center;
+        gap: .45rem;
+        text-decoration: none;
+        transition: transform .15s ease, background .15s ease, box-shadow .15s ease;
+        box-shadow: 0 4px 14px rgba(29, 185, 84, 0.35);
+    }
+    .btn-spotify-connect:hover {
+        background: #1ed760;
+        color: #000;
+        transform: scale(1.04);
+        box-shadow: 0 6px 18px rgba(29, 185, 84, 0.45);
+    }
+
+    .sp-play-btn {
+        width: 36px;
+        height: 36px;
+        border-radius: 50%;
+        background: #1DB954;
+        border: none;
+        color: #000;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        cursor: pointer;
+        flex-shrink: 0;
+        box-shadow: 0 4px 12px rgba(29, 185, 84, 0.35);
+        transition: transform .15s, background .15s;
+    }
+    .sp-play-btn:hover {
+        transform: scale(1.08);
+        background: #1ed760;
+        color: #000;
+    }
+    .sp-seek-lane {
+        width: 100%;
+        height: 6px;
+        border-radius: 6px;
+        background: rgba(255, 255, 255, 0.12);
+        cursor: pointer;
+        overflow: hidden;
+        position: relative;
+    }
+    .sp-seek-fill {
+        height: 100%;
+        width: 0%;
+        background: #1DB954;
+        border-radius: 6px;
+        transition: width .15s linear;
+    }
+
     .info-tiles { display: flex; flex-wrap: wrap; gap: .9rem; align-items: stretch; margin-top: 1.5rem; }
     .info-tile {
         background: rgba(255,255,255,.04); border: 1px solid var(--line); border-radius: 14px;
@@ -341,40 +456,102 @@
     {{-- ======================= SOUNDTRACK ======================= --}}
     <hr class="pilem-hr my-4">
     <div id="soundtrack">
-        <div class="section-label">Soundtrack (iTunes)</div>
+        <div class="d-flex justify-content-between align-items-center mb-3 flex-wrap gap-2">
+            <div>
+                <div class="section-label mb-0">
+                    Soundtrack &amp; Musik Tema
+                </div>
+                <div class="text-dim small mt-1">Daftar soundtrack resmi film via Spotify.</div>
+            </div>
+
+            @if (session('spotify_user_access_token'))
+                <div class="d-flex align-items-center gap-2 flex-wrap">
+                    <span class="badge bg-success bg-opacity-25 text-success border border-success border-opacity-25 px-2.5 py-1.5 d-inline-flex align-items-center gap-1.5" style="font-size:0.75rem;">
+                        <svg width="13" height="13" viewBox="0 0 24 24" fill="#1DB954"><path d="M12 0C5.4 0 0 5.4 0 12s5.4 12 12 12 12-5.4 12-12S18.66 0 12 0zm5.521 17.34c-.24.359-.66.48-1.021.24-2.82-1.74-6.36-2.101-10.561-1.141-.418.122-.779-.179-.899-.539-.12-.421.18-.78.54-.9 4.56-1.021 8.52-.6 11.64 1.32.42.18.479.659.301 1.02zm1.44-3.3c-.301.42-.841.6-1.262.3-3.239-1.98-8.159-2.58-11.939-1.38-.479.12-1.02-.12-1.14-.6-.12-.48.12-1.021.6-1.141C9.6 9.9 15 10.561 18.72 12.84c.361.181.54.78.241 1.2zm.12-3.36C15.24 8.4 8.82 8.16 5.16 9.301c-.6.179-1.2-.181-1.38-.721-.18-.601.18-1.2.72-1.381 4.26-1.26 11.28-1.02 15.721 1.621.539.3.719 1.02.419 1.56-.299.421-1.02.599-1.559.3z"/></svg>
+                        <span>Tersambung: <strong>{{ session('spotify_user_name', 'Spotify') }}</strong> ({{ ucfirst(session('spotify_user_product', 'Premium')) }})</span>
+                    </span>
+                    <a href="{{ route('spotify.logout') }}" class="btn btn-outline-danger btn-sm px-2 py-0 fw-semibold text-decoration-none" style="font-size:0.7rem;" title="Putuskan koneksi Spotify">
+                        Putus
+                    </a>
+                </div>
+            @else
+                <a href="{{ route('spotify.login', ['return_url' => url()->current()]) }}" class="btn btn-outline-success btn-sm d-inline-flex align-items-center gap-1.5 px-2.5 py-1 text-decoration-none" style="font-size:0.78rem;">
+                    <svg width="14" height="14" viewBox="0 0 24 24" fill="#1DB954"><path d="M12 0C5.4 0 0 5.4 0 12s5.4 12 12 12 12-5.4 12-12S18.66 0 12 0zm5.521 17.34c-.24.359-.66.48-1.021.24-2.82-1.74-6.36-2.101-10.561-1.141-.418.122-.779-.179-.899-.539-.12-.421.18-.78.54-.9 4.56-1.021 8.52-.6 11.64 1.32.42.18.479.659.301 1.02zm1.44-3.3c-.301.42-.841.6-1.262.3-3.239-1.98-8.159-2.58-11.939-1.38-.479.12-1.02-.12-1.14-.6-.12-.48.12-1.021.6-1.141C9.6 9.9 15 10.561 18.72 12.84c.361.181.54.78.241 1.2zm.12-3.36C15.24 8.4 8.82 8.16 5.16 9.301c-.6.179-1.2-.181-1.38-.721-.18-.601.18-1.2.72-1.381 4.26-1.26 11.28-1.02 15.721 1.621.539.3.719 1.02.419 1.56-.299.421-1.02.599-1.559.3z"/></svg>
+                    <span>Hubungkan Spotify</span>
+                </a>
+            @endif
+        </div>
+8
         @php
-            $ostList = array_values(array_filter($film['externalData']['soundtrack'] ?? [], fn ($t) => !empty($t['trackName'])));
-            $ostN = min(6, count($ostList));
-            if ($ostN === 5) { $ostN = 4; }
-            $ostList = array_slice($ostList, 0, $ostN);
-            $ostCols = in_array($ostN, [3, 6]) ? 'cols-3' : ($ostN === 1 ? 'cols-1' : 'cols-2');
+            $rawOstList = array_values(array_filter($film['externalData']['soundtrack'] ?? [], fn ($t) => !empty($t['trackName'])));
+            $ostList = [];
+            $seenBladeTitles = [];
+            foreach ($rawOstList as $trk) {
+                $cKey = preg_replace('/[^a-z0-9]/', '', strtolower(trim(preg_replace('/\s*[\(\[][^\)\]]*[\)\]]/u', '', $trk['trackName']))));
+                if ($cKey === '') {
+                    $cKey = strtolower(preg_replace('/[^a-z0-9]/', '', $trk['trackName']));
+                }
+                if (!isset($seenBladeTitles[$cKey])) {
+                    $seenBladeTitles[$cKey] = true;
+                    $ostList[] = $trk;
+                }
+                if (count($ostList) >= 6) {
+                    break;
+                }
+            }
+            $ostN = count($ostList);
+            $hasSpotifyUser = (bool) session('spotify_user_access_token');
         @endphp
         @if ($ostN > 0)
-            <div class="ost-grid {{ $ostCols }}">
-                @foreach ($ostList as $track)
-                    <div class="ost-track">
-                        <div class="ost-title">{{ $track['trackName'] }}</div>
-                        <div class="ost-artist">{{ $track['artistName'] ?? '' }}</div>
-                        <div class="ost-player">
-                            @if (!empty($track['previewUrl']))
-                                <audio controls preload="none">
-                                    <source src="{{ $track['previewUrl'] }}" type="audio/mp4">
-                                </audio>
-                                <div class="data-source-note mt-2">
-                                    Preview 30 detik ·
-                                    <a href="https://open.spotify.com/search/{{ urlencode(trim(($track['trackName'] ?? '') . ' ' . ($track['artistName'] ?? ''))) }}"
-                                       target="_blank" rel="noopener" class="text-sand">Cari di Spotify →</a>
-                                </div>
-                            @else
-                                <div class="data-source-note">Preview tidak tersedia.</div>
+            <div class="ost-grid">
+                @foreach ($ostList as $idx => $track)
+                    <div class="ost-track-card" id="ost-card-{{ $idx }}">
+                        {{-- Baris Atas: Judul, Penyanyi & Tombol Play / Tautan Spotify --}}
+                        <div class="d-flex align-items-center justify-content-between gap-3">
+                            <div class="min-w-0 flex-grow-1">
+                                <div class="ost-track-title" title="{{ $track['trackName'] }}">{{ $track['trackName'] }}</div>
+                                <div class="ost-track-artist" title="{{ $track['artistName'] ?? '' }}">{{ $track['artistName'] ?? 'Official Artist' }}</div>
+                            </div>
+
+                            @if ($hasSpotifyUser && !empty($track['trackId']))
+                                <button type="button" class="sp-play-btn" id="sp-btn-play-{{ $idx }}" onclick="togglePlaySpotifyTrack({{ $idx }})" aria-label="Putar lagu {{ $track['trackName'] }}">
+                                    <svg id="sp-ico-play-{{ $idx }}" width="15" height="15" viewBox="0 0 24 24" fill="currentColor"><path d="M8 5v14l11-7z"/></svg>
+                                    <svg id="sp-ico-pause-{{ $idx }}" class="d-none" width="15" height="15" viewBox="0 0 24 24" fill="currentColor"><path d="M6 5h4v14H6zm8 0h4v14h-4z"/></svg>
+                                </button>
+                            @elseif (!empty($track['spotifyUrl']))
+                                <a href="{{ $track['spotifyUrl'] }}"
+                                   target="_blank" rel="noopener" class="text-success d-inline-flex align-items-center gap-1 small text-decoration-none fw-semibold flex-shrink-0" style="font-size:.74rem;">
+                                    <svg width="13" height="13" viewBox="0 0 24 24" fill="#1DB954"><path d="M12 0C5.4 0 0 5.4 0 12s5.4 12 12 12 12-5.4 12-12S18.66 0 12 0zm5.521 17.34c-.24.359-.66.48-1.021.24-2.82-1.74-6.36-2.101-10.561-1.141-.418.122-.779-.179-.899-.539-.12-.421.18-.78.54-.9 4.56-1.021 8.52-.6 11.64 1.32.42.18.479.659.301 1.02zm1.44-3.3c-.301.42-.841.6-1.262.3-3.239-1.98-8.159-2.58-11.939-1.38-.479.12-1.02-.12-1.14-.6-.12-.48.12-1.021.6-1.141C9.6 9.9 15 10.561 18.72 12.84c.361.181.54.78.241 1.2zm.12-3.36C15.24 8.4 8.82 8.16 5.16 9.301c-.6.179-1.2-.181-1.38-.721-.18-.601.18-1.2.72-1.381 4.26-1.26 11.28-1.02 15.721 1.621.539.3.719 1.02.419 1.56-.299.421-1.02.599-1.559.3z"/></svg>
+                                    Buka &rarr;
+                                </a>
                             @endif
                         </div>
+
+                        {{-- Mode Terhubung: Live Seekbar & Player Controller --}}
+                        @if ($hasSpotifyUser)
+                            <div class="mt-2">
+                                <div class="sp-seek-lane" id="sp-seek-lane-{{ $idx }}" onclick="seekSpotifyTrack({{ $idx }}, event)">
+                                    <div class="sp-seek-fill" id="sp-seek-fill-{{ $idx }}"></div>
+                                </div>
+                                <div class="d-flex justify-content-between mt-1 text-dim" style="font-size: .68rem; font-variant-numeric: tabular-nums;">
+                                    <span id="sp-cur-time-{{ $idx }}">0:00</span>
+                                    <span id="sp-dur-time-{{ $idx }}">Full Durasi (Spotify)</span>
+                                </div>
+                            </div>
+                        {{-- Mode Belum Terhubung: Spotify Embed Widget 80px --}}
+                        @elseif (!empty($track['embedUrl']))
+                            <iframe class="ost-spotify-frame"
+                                    src="{{ $track['embedUrl'] }}"
+                                    frameBorder="0"
+                                    allow="autoplay; clipboard-write; encrypted-media; fullscreen; picture-in-picture"
+                                    loading="lazy"></iframe>
+                        @endif
                     </div>
                 @endforeach
             </div>
         @else
             <div class="card-flat p-3 text-center">
-                <div class="text-white-50 small">Data soundtrack tidak tersedia.</div>
+                <div class="text-white-50 small">Data soundtrack Spotify tidak tersedia untuk film ini.</div>
             </div>
         @endif
     </div>
@@ -413,3 +590,156 @@
 
 </div>
 @endsection
+
+@if (session('spotify_user_access_token'))
+@push('scripts')
+<script src="https://sdk.scdn.co/spotify-player.js"></script>
+<script>
+(function () {
+    const ostTracks = @json($ostList ?? []);
+    let currentDeviceId = null;
+    let activeIndex = null;
+    let spotifyPlayer = null;
+    let trackProgressTimer = null;
+
+    const fmt = ms => {
+        const s = Math.floor(ms / 1000);
+        return (isFinite(s) && s > 0) ? Math.floor(s / 60) + ':' + String(Math.floor(s % 60)).padStart(2, '0') : '0:00';
+    };
+
+    window.onSpotifyWebPlaybackSDKReady = function () {
+        spotifyPlayer = new Spotify.Player({
+            name: 'Pilem Web Player',
+            getOAuthToken: function (cb) {
+                fetch('{{ route('spotify.token') }}')
+                    .then(r => r.json())
+                    .then(d => {
+                        if (d && d.token) cb(d.token);
+                    })
+                    .catch(err => console.error('Spotify token fetch error:', err));
+            },
+            volume: 0.8
+        });
+
+        spotifyPlayer.addListener('ready', ({ device_id }) => {
+            console.log('Spotify Web Player Ready! Device ID:', device_id);
+            currentDeviceId = device_id;
+        });
+
+        spotifyPlayer.addListener('not_ready', ({ device_id }) => {
+            console.warn('Spotify Device ID offline:', device_id);
+        });
+
+        spotifyPlayer.addListener('player_state_changed', state => {
+            if (!state) return;
+            const isPaused = state.paused;
+            const pos = state.position || 0;
+            const dur = state.duration || 0;
+
+            if (activeIndex !== null) {
+                const curEl = document.getElementById('sp-cur-time-' + activeIndex);
+                const durEl = document.getElementById('sp-dur-time-' + activeIndex);
+                const fillEl = document.getElementById('sp-seek-fill-' + activeIndex);
+                const playIco = document.getElementById('sp-ico-play-' + activeIndex);
+                const pauseIco = document.getElementById('sp-ico-pause-' + activeIndex);
+                const card = document.getElementById('ost-card-' + activeIndex);
+
+                if (curEl) curEl.textContent = fmt(pos);
+                if (durEl && dur > 0) durEl.textContent = fmt(dur);
+                if (fillEl && dur > 0) fillEl.style.width = ((pos / dur) * 100) + '%';
+                if (playIco) playIco.classList.toggle('d-none', !isPaused);
+                if (pauseIco) pauseIco.classList.toggle('d-none', isPaused);
+                if (card) card.classList.toggle('is-playing', !isPaused);
+            }
+        });
+
+        spotifyPlayer.connect();
+    };
+
+    function startLiveTimer(idx) {
+        stopLiveTimer();
+        trackProgressTimer = setInterval(() => {
+            if (!spotifyPlayer) return;
+            spotifyPlayer.getCurrentState().then(state => {
+                if (state && !state.paused && state.duration > 0) {
+                    const curEl = document.getElementById('sp-cur-time-' + idx);
+                    const durEl = document.getElementById('sp-dur-time-' + idx);
+                    const fillEl = document.getElementById('sp-seek-fill-' + idx);
+                    if (curEl) curEl.textContent = fmt(state.position);
+                    if (durEl) durEl.textContent = fmt(state.duration);
+                    if (fillEl) fillEl.style.width = ((state.position / state.duration) * 100) + '%';
+                }
+            });
+        }, 300);
+    }
+
+    function stopLiveTimer() {
+        if (trackProgressTimer) {
+            clearInterval(trackProgressTimer);
+            trackProgressTimer = null;
+        }
+    }
+
+    window.togglePlaySpotifyTrack = function (idx) {
+        const track = ostTracks[idx];
+        if (!track || !track.trackId) return;
+
+        if (activeIndex === idx) {
+            if (spotifyPlayer) {
+                spotifyPlayer.togglePlay();
+            }
+        } else {
+            if (activeIndex !== null) {
+                const prevCard = document.getElementById('ost-card-' + activeIndex);
+                const prevPlayIco = document.getElementById('sp-ico-play-' + activeIndex);
+                const prevPauseIco = document.getElementById('sp-ico-pause-' + activeIndex);
+                if (prevCard) prevCard.classList.remove('is-playing');
+                if (prevPlayIco) prevPlayIco.classList.remove('d-none');
+                if (prevPauseIco) prevPauseIco.classList.add('d-none');
+            }
+
+            activeIndex = idx;
+            const durEl = document.getElementById('sp-dur-time-' + idx);
+            if (durEl) durEl.textContent = 'Memulai streaming...';
+
+            fetch('{{ route('spotify.play') }}', {
+                method: 'POST',
+                headers: {
+                    'Content-Type': 'application/json',
+                    'X-CSRF-TOKEN': document.querySelector('meta[name="csrf-token"]')?.getAttribute('content') || ''
+                },
+                body: JSON.stringify({
+                    device_id: currentDeviceId,
+                    track_uri: 'spotify:track:' + track.trackId
+                })
+            }).then(r => r.json()).then(res => {
+                startLiveTimer(idx);
+            }).catch(e => {
+                console.error('Play error:', e);
+                if (durEl) durEl.textContent = 'Gagal memutar';
+            });
+        }
+    };
+
+    window.seekSpotifyTrack = function (idx, event) {
+        if (!spotifyPlayer || activeIndex !== idx) return;
+        const lane = document.getElementById('sp-seek-lane-' + idx);
+        if (!lane) return;
+        const rect = lane.getBoundingClientRect();
+        const ratio = Math.max(0, Math.min(1, (event.clientX - rect.left) / rect.width));
+
+        spotifyPlayer.getCurrentState().then(state => {
+            if (state && state.duration > 0) {
+                const targetMs = Math.floor(ratio * state.duration);
+                spotifyPlayer.seek(targetMs);
+                const curEl = document.getElementById('sp-cur-time-' + idx);
+                const fillEl = document.getElementById('sp-seek-fill-' + idx);
+                if (curEl) curEl.textContent = fmt(targetMs);
+                if (fillEl) fillEl.style.width = (ratio * 100) + '%';
+            }
+        });
+    };
+})();
+</script>
+@endpush
+@endif
